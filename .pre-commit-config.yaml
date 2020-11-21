@@ -18,3 +18,12 @@ repos:
     hooks:
       - id: fmt
       - id: cargo-check
+
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.1.9
+    hooks:
+      - id: insert-license
+        files: \.groovy$
+        args: # defaults to: LICENSE.txt
+          - --comment-style
+          - //

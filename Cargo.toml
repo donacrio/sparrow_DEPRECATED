@@ -12,3 +12,6 @@ opt-level = 0
 opt-level = 3
 
 [dependencies]
+
+[dev-dependencies]
+rstest = "0.6.4"
