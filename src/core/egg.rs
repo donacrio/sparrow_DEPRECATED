@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::fmt;
 use std::time::Instant;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -37,6 +38,12 @@ impl Egg {
   }
   pub fn created_at(&self) -> &Instant {
     &self.created_at
+  }
+}
+
+impl fmt::Display for Egg {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{}", self.value)
   }
 }
 
