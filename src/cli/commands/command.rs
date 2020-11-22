@@ -11,5 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pub mod cli;
-pub mod core;
+
+use crate::core::Owl;
+use std::fmt;
+
+pub trait Command {
+  fn new(args: Vec<&str>) -> Self;
+  fn execute(&self, engine: &mut Owl) -> Box<dyn fmt::Display>;
+}

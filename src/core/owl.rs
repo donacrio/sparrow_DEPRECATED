@@ -11,5 +11,29 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pub mod cli;
-pub mod core;
+
+use super::egg::Egg;
+use super::errors;
+use super::nest::Nest;
+
+pub struct Owl {
+  nest: Nest,
+}
+
+impl Owl {
+  pub fn new() -> Owl {
+    Owl { nest: Nest::new() }
+  }
+}
+
+impl Owl {
+  pub fn insert(&mut self, key: &str, value: &str) -> Option<Egg> {
+    self.nest.insert(Egg::new(key, value))
+  }
+  pub fn get(&self, key: &str) -> Result<&Egg, errors::EggNotInNestError> {
+    self.nest.get(key)
+  }
+  pub fn pop(&mut self, key: &str) -> Result<Egg, errors::EggNotInNestError> {
+    self.nest.pop(key)
+  }
+}

@@ -11,7 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+use owl::{cli, core};
+use std::process;
 
 fn main() {
-  println!("Nothing implemented yet :/")
+  let mut engine = core::Owl::new();
+  let mut cli = cli::Cli::new(&mut engine);
+
+  cli.run().unwrap_or_else(|error| {
+    eprintln!("An error occurred: {}", error);
+    process::exit(1);
+  });
 }
