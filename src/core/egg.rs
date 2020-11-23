@@ -11,23 +11,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+use chrono::prelude::{DateTime, Utc};
 use std::fmt;
-use std::time::Instant;
+use std::time::SystemTime;
+
+const DATETIME_FORMAT: &str = "%+";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Egg {
   key: String,
   value: String,
-  created_at: Instant,
+  created_at: DateTime<Utc>,
 }
 
 impl Egg {
   pub fn new(key: &str, value: &str) -> Egg {
+    let created_at: DateTime<Utc> = SystemTime::now().into();
     Egg {
       key: key.to_string(),
       value: value.to_string(),
-      created_at: Instant::now(),
+      created_at,
     }
   }
   pub fn key(&self) -> &String {
@@ -36,14 +39,20 @@ impl Egg {
   pub fn value(&self) -> &String {
     &self.value
   }
-  pub fn created_at(&self) -> &Instant {
+  pub fn created_at(&self) -> &DateTime<Utc> {
     &self.created_at
   }
 }
 
 impl fmt::Display for Egg {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "{}", self.value)
+    write!(
+      f,
+      "Egg {{ key={}, value={}, created_at={} }}",
+      self.key,
+      self.value,
+      self.created_at.format(DATETIME_FORMAT)
+    )
   }
 }
 
@@ -66,6 +75,8 @@ mod tests {
 
     assert_eq!(egg.key(), egg_key);
     assert_eq!(egg.value(), egg_value);
-    assert!(egg.created_at() < &Instant::now());
+
+    let current_time: DateTime<Utc> = SystemTime::now().into();
+    assert!(egg.created_at() < &current_time);
   }
 }
