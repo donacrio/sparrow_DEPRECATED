@@ -15,9 +15,7 @@ use chrono::prelude::{DateTime, Utc};
 use std::fmt;
 use std::time::SystemTime;
 
-const DATETIME_FORMAT: &str = "%+";
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Egg {
   key: String,
   value: String,
@@ -49,34 +47,55 @@ impl fmt::Display for Egg {
     write!(
       f,
       "Egg {{ key={}, value={}, created_at={} }}",
-      self.key,
-      self.value,
-      self.created_at.format(DATETIME_FORMAT)
+      self.key, self.value, self.created_at
     )
   }
 }
 
+impl PartialEq for Egg {
+  fn eq(&self, other: &Self) -> bool {
+    self.key.eq(&other.key) && self.value.eq(&other.value)
+  }
+}
+
+impl Eq for Egg {}
+
 #[cfg(test)]
 mod tests {
   use super::*;
+  use rstest::*;
+
+  const TEST_EGG_KEY: &str = "test";
+  const TEST_EGG_VALUE: &str = "This is a test value!";
 
   #[test]
-  fn test_create_new_egg() {
-    let egg_key = "test";
-    let egg_value = "This is a test value!";
-    Egg::new(egg_key, egg_value);
+  fn test_egg_new() {
+    Egg::new(TEST_EGG_KEY, TEST_EGG_VALUE);
   }
 
-  #[test]
-  fn test_egg_getters() {
-    let egg_key = "test";
-    let egg_value = "This is a test value!";
-    let egg = Egg::new(egg_key, egg_value);
+  #[fixture]
+  fn egg() -> Egg {
+    Egg::new(TEST_EGG_KEY, TEST_EGG_VALUE)
+  }
 
-    assert_eq!(egg.key(), egg_key);
-    assert_eq!(egg.value(), egg_value);
+  #[rstest]
+  fn test_egg_getters(egg: Egg) {
+    assert_eq!(egg.key(), TEST_EGG_KEY);
+    assert_eq!(egg.value(), TEST_EGG_VALUE);
 
     let current_time: DateTime<Utc> = SystemTime::now().into();
+    // Egg has been create before current time
     assert!(egg.created_at() < &current_time);
+  }
+
+  #[rstest]
+  fn test_egg_display_impl(egg: Egg) {
+    let expected = format!(
+      "Egg {{ key={}, value={}, created_at={} }}",
+      egg.key(),
+      egg.value(),
+      egg.created_at()
+    );
+    assert_eq!(format!("{}", egg), expected);
   }
 }

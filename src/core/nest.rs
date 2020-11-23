@@ -48,6 +48,14 @@ mod tests {
   use super::*;
   use rstest::*;
 
+  const TEST_EGG_KEY: &str = "test";
+  const TEST_EGG_VALUE: &str = "This is a test value!";
+
+  #[test]
+  fn test_new_nest() {
+    Nest::new();
+  }
+
   #[fixture]
   fn nest() -> Nest {
     Nest::new()
@@ -55,9 +63,7 @@ mod tests {
 
   #[fixture]
   fn egg() -> Egg {
-    let egg_key = "test";
-    let egg_value = "This is a test value!";
-    Egg::new(egg_key, egg_value)
+    Egg::new(TEST_EGG_KEY, TEST_EGG_VALUE)
   }
 
   #[test]
@@ -69,22 +75,30 @@ mod tests {
   fn test_nest_insert(mut nest: Nest, egg: Egg) {
     // Egg is not in nest
     assert_eq!(nest.insert(egg.clone()), None);
-    // Egg is in nest
+    // Egg is inserted into the nest and the egg previously associated to its key is returned
     assert_eq!(nest.insert(egg.clone()), Some(egg));
   }
 
   #[rstest]
   fn test_nest_get(mut nest: Nest, egg: Egg) {
-    // Egg is not in nest
+    // Egg is not in the nest
+    assert_eq!(
+      nest.get(egg.key()),
+      Err(errors::EggNotInNestError::new(egg.key()))
+    );
+    // Egg is inserted into the nest and its key wasn't found
     assert_eq!(nest.insert(egg.clone()), None);
+    // Egg is in the nest and its value is returned
     assert_eq!(nest.get(egg.key()), Ok(&egg))
   }
 
   #[rstest]
   fn test_nest_pop(mut nest: Nest, egg: Egg) {
-    // Egg is not in nest
+    // Egg is inserted into the nest and its key wasn't found
     assert_eq!(nest.insert(egg.clone()), None);
+    // Egg is popped from the nest and returned
     assert_eq!(nest.pop(egg.key()), Ok(egg.clone()));
+    // Egg is not in the nest
     assert_eq!(
       nest.pop(egg.key()),
       Err(errors::EggNotInNestError::new(egg.key()))
