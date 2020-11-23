@@ -15,7 +15,7 @@
 mod commands;
 
 use crate::core;
-use commands::{Command, InsertCommand};
+use commands::{Command, GetCommand, InsertCommand, PopCommand};
 use std::error;
 use std::io;
 
@@ -35,10 +35,13 @@ impl Cli<'_> {
       let mut input = String::new();
       io::stdin().read_line(&mut input)?;
 
-      let command: Vec<&str> = input.split(' ').collect();
-      if let Some(command_type) = command.get(0) {
+      let input: Vec<&str> = input.trim().split(' ').collect();
+      if let Some(command_type) = input.get(0) {
+        let command_args: Vec<&str> = input[1..].to_vec();
         let result = match *command_type {
-          "insert" => InsertCommand::new(command[1..].to_vec()).execute(&mut self.engine),
+          "insert" => InsertCommand::new(command_args).execute(&mut self.engine),
+          "get" => GetCommand::new(command_args).execute(&mut self.engine),
+          "pop" => PopCommand::new(command_args).execute(&mut self.engine),
           _ => Box::new("Woops, this command does not exists"),
         };
         println!("{}", result);
