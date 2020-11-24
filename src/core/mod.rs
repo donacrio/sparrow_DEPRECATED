@@ -14,6 +14,6 @@
 mod egg;
 mod errors;
 mod nest;
-mod owl;
+mod sparrow;
 
-pub use self::owl::Owl;
+pub use self::sparrow::Sparrow;

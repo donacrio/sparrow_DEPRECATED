@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::core::Owl;
+use crate::core::Sparrow;
 use std::fmt;
 
 pub trait Command {
   fn new(args: Vec<&str>) -> Self;
-  fn execute(&self, engine: &mut Owl) -> Box<dyn fmt::Display>;
+  fn execute(&self, engine: &mut Sparrow) -> Box<dyn fmt::Display>;
 }

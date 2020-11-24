@@ -20,11 +20,11 @@ use std::error;
 use std::io;
 
 pub struct Cli<'a> {
-  engine: &'a mut core::Owl,
+  engine: &'a mut core::Sparrow,
 }
 
 impl Cli<'_> {
-  pub fn new(engine: &'_ mut core::Owl) -> Cli {
+  pub fn new(engine: &'_ mut core::Sparrow) -> Cli {
     Cli { engine }
   }
 }

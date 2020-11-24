@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use super::command::Command;
-use crate::core::Owl;
+use crate::core::Sparrow;
 use std::fmt;
 
 pub struct InsertCommand {
@@ -34,7 +34,7 @@ impl Command for InsertCommand {
       value: args.get(1).unwrap().to_string(),
     }
   }
-  fn execute(&self, engine: &mut Owl) -> Box<dyn fmt::Display> {
+  fn execute(&self, engine: &mut Sparrow) -> Box<dyn fmt::Display> {
     match engine.insert(&self.key, &self.value) {
       Some(egg) => Box::new(egg),
       None => Box::new(String::from("Inserted new value!")),
