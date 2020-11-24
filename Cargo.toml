@@ -1,8 +1,10 @@
 [package]
 authors = ["donacrio <donatien.criaud@gmail.com>"]
+description = "A lightweight in-memory database"
 edition = "2018"
 license = "Apache-2.0"
-name = "owl"
+name = "sparrow"
+repository = "https://github.com/DonaCrio/sparrow"
 version = "0.1.0"
 
 [profile.dev]

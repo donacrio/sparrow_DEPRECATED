@@ -16,17 +16,17 @@ use super::egg::Egg;
 use super::errors;
 use super::nest::Nest;
 
-pub struct Owl {
+pub struct Sparrow {
   nest: Nest,
 }
 
-impl Owl {
-  pub fn new() -> Owl {
-    Owl { nest: Nest::new() }
+impl Sparrow {
+  pub fn new() -> Sparrow {
+    Sparrow { nest: Nest::new() }
   }
 }
 
-impl Owl {
+impl Sparrow {
   pub fn insert(&mut self, key: &str, value: &str) -> Option<Egg> {
     self.nest.insert(Egg::new(key, value))
   }
@@ -47,13 +47,13 @@ mod tests {
   const TEST_EGG_VALUE: &str = "This is a test value!";
 
   #[test]
-  fn test_owl_new() {
-    Owl::new();
+  fn test_sparrow_new() {
+    Sparrow::new();
   }
 
   #[fixture]
-  fn owl() -> Owl {
-    Owl::new()
+  fn sparrow() -> Sparrow {
+    Sparrow::new()
   }
 
   #[fixture]
@@ -62,35 +62,35 @@ mod tests {
   }
 
   #[rstest]
-  fn test_owl_insert(mut owl: Owl, egg: Egg) {
-    // Egg is inserted into owl's nest and its key wasn't found
-    assert_eq!(owl.insert(egg.key(), egg.value()), None);
-    // Egg is inserted into owl's nest and the egg previously associated to its key is returned
-    assert_eq!(owl.insert(egg.key(), egg.value()), Some(egg));
+  fn test_sparrow_insert(mut sparrow: Sparrow, egg: Egg) {
+    // Egg is inserted into sparrow's nest and its key wasn't found
+    assert_eq!(sparrow.insert(egg.key(), egg.value()), None);
+    // Egg is inserted into sparrow's nest and the egg previously associated to its key is returned
+    assert_eq!(sparrow.insert(egg.key(), egg.value()), Some(egg));
   }
 
   #[rstest]
-  fn test_owl_get(mut owl: Owl, egg: Egg) {
-    // Egg is not in owl's nest
+  fn test_sparrow_get(mut sparrow: Sparrow, egg: Egg) {
+    // Egg is not in sparrow's nest
     assert_eq!(
-      owl.get(egg.key()),
+      sparrow.get(egg.key()),
       Err(errors::EggNotInNestError::new(egg.key()))
     );
-    // Egg is inserted into owl's nest and its key wasn't found
-    assert_eq!(owl.insert(egg.key(), egg.value()), None);
-    // Egg is in owl's nest and its value is returned
-    assert_eq!(owl.get(egg.key()), Ok(&egg))
+    // Egg is inserted into sparrow's nest and its key wasn't found
+    assert_eq!(sparrow.insert(egg.key(), egg.value()), None);
+    // Egg is in sparrow's nest and its value is returned
+    assert_eq!(sparrow.get(egg.key()), Ok(&egg))
   }
 
   #[rstest]
-  fn test_owl_pop(mut owl: Owl, egg: Egg) {
-    // Egg is inserted into owl's nest and its key wasn't found
-    assert_eq!(owl.insert(egg.key(), egg.value()), None);
-    // Egg is popped from owl's nest and returned
-    assert_eq!(owl.pop(egg.key()), Ok(egg.clone()));
-    // Egg is not in owl's nest
+  fn test_sparrow_pop(mut sparrow: Sparrow, egg: Egg) {
+    // Egg is inserted into sparrow's nest and its key wasn't found
+    assert_eq!(sparrow.insert(egg.key(), egg.value()), None);
+    // Egg is popped from sparrow's nest and returned
+    assert_eq!(sparrow.pop(egg.key()), Ok(egg.clone()));
+    // Egg is not in sparrow's nest
     assert_eq!(
-      owl.pop(egg.key()),
+      sparrow.pop(egg.key()),
       Err(errors::EggNotInNestError::new(egg.key()))
     );
   }
