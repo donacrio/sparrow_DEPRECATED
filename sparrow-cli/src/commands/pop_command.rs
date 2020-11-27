@@ -11,5 +11,31 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pub mod cli;
-pub mod core;
+
+use super::command::Command;
+use sparrow::Sparrow;
+use std::fmt;
+
+pub struct PopCommand {
+  key: String,
+}
+
+impl Command for PopCommand {
+  fn new(args: Vec<&str>) -> Self {
+    if args.len() != 1 {
+      panic!(
+        "Insert command requires exactly one arguments, {} were provided",
+        args.len()
+      );
+    }
+    PopCommand {
+      key: args.get(0).unwrap().to_string(),
+    }
+  }
+  fn execute(&self, engine: &mut Sparrow) -> Box<dyn fmt::Display> {
+    match engine.pop(&self.key) {
+      Ok(egg) => Box::new(egg),
+      Err(error) => Box::new(error),
+    }
+  }
+}

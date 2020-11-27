@@ -11,15 +11,31 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use sparrow::{cli, core};
-use std::process;
 
-fn main() {
-  let mut engine = core::Sparrow::new();
-  let mut cli = cli::Cli::new(&mut engine);
+use super::command::Command;
+use sparrow::Sparrow;
+use std::fmt;
 
-  cli.run().unwrap_or_else(|error| {
-    eprintln!("An error occurred: {}", error);
-    process::exit(1);
-  });
+pub struct GetCommand {
+  key: String,
+}
+
+impl Command for GetCommand {
+  fn new(args: Vec<&str>) -> Self {
+    if args.len() != 1 {
+      panic!(
+        "Insert command requires exactly one arguments, {} were provided",
+        args.len()
+      );
+    }
+    GetCommand {
+      key: args.get(0).unwrap().to_string(),
+    }
+  }
+  fn execute(&self, engine: &mut Sparrow) -> Box<dyn fmt::Display> {
+    match engine.get(&self.key) {
+      Ok(egg) => Box::new(egg.clone()),
+      Err(error) => Box::new(error),
+    }
+  }
 }

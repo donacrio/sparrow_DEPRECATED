@@ -12,30 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::command::Command;
-use crate::core::Sparrow;
+use sparrow::Sparrow;
 use std::fmt;
 
-pub struct PopCommand {
-  key: String,
-}
-
-impl Command for PopCommand {
-  fn new(args: Vec<&str>) -> Self {
-    if args.len() != 1 {
-      panic!(
-        "Insert command requires exactly one arguments, {} were provided",
-        args.len()
-      );
-    }
-    PopCommand {
-      key: args.get(0).unwrap().to_string(),
-    }
-  }
-  fn execute(&self, engine: &mut Sparrow) -> Box<dyn fmt::Display> {
-    match engine.pop(&self.key) {
-      Ok(egg) => Box::new(egg),
-      Err(error) => Box::new(error),
-    }
-  }
+pub trait Command {
+  fn new(args: Vec<&str>) -> Self;
+  fn execute(&self, engine: &mut Sparrow) -> Box<dyn fmt::Display>;
 }

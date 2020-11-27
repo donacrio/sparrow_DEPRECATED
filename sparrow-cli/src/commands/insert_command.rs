@@ -13,29 +13,31 @@
 // limitations under the License.
 
 use super::command::Command;
-use crate::core::Sparrow;
+use sparrow::Sparrow;
 use std::fmt;
 
-pub struct GetCommand {
+pub struct InsertCommand {
   key: String,
+  value: String,
 }
 
-impl Command for GetCommand {
+impl Command for InsertCommand {
   fn new(args: Vec<&str>) -> Self {
-    if args.len() != 1 {
+    if args.len() != 2 {
       panic!(
-        "Insert command requires exactly one arguments, {} were provided",
+        "Insert command requires exactly two arguments, {} were provided",
         args.len()
       );
     }
-    GetCommand {
+    InsertCommand {
       key: args.get(0).unwrap().to_string(),
+      value: args.get(1).unwrap().to_string(),
     }
   }
   fn execute(&self, engine: &mut Sparrow) -> Box<dyn fmt::Display> {
-    match engine.get(&self.key) {
-      Ok(egg) => Box::new(egg.clone()),
-      Err(error) => Box::new(error),
+    match engine.insert(&self.key, &self.value) {
+      Some(egg) => Box::new(egg),
+      None => Box::new(String::from("Inserted new value!")),
     }
   }
 }
