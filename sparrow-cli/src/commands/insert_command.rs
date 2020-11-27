@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use super::command::Command;
-use crate::core::Sparrow;
+use sparrow::Sparrow;
 use std::fmt;
 
 pub struct InsertCommand {

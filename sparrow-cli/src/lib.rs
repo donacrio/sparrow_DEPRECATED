@@ -14,17 +14,17 @@
 
 mod commands;
 
-use crate::core;
 use commands::{Command, GetCommand, InsertCommand, PopCommand};
+use sparrow::Sparrow;
 use std::error;
 use std::io;
 
 pub struct Cli<'a> {
-  engine: &'a mut core::Sparrow,
+  engine: &'a mut Sparrow,
 }
 
 impl Cli<'_> {
-  pub fn new(engine: &'_ mut core::Sparrow) -> Cli {
+  pub fn new(engine: &'_ mut Sparrow) -> Cli {
     Cli { engine }
   }
 }

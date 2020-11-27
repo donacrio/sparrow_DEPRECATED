@@ -13,14 +13,14 @@
 // limitations under the License.
 
 use super::command::Command;
-use crate::core::Sparrow;
+use sparrow::Sparrow;
 use std::fmt;
 
-pub struct GetCommand {
+pub struct PopCommand {
   key: String,
 }
 
-impl Command for GetCommand {
+impl Command for PopCommand {
   fn new(args: Vec<&str>) -> Self {
     if args.len() != 1 {
       panic!(
@@ -28,13 +28,13 @@ impl Command for GetCommand {
         args.len()
       );
     }
-    GetCommand {
+    PopCommand {
       key: args.get(0).unwrap().to_string(),
     }
   }
   fn execute(&self, engine: &mut Sparrow) -> Box<dyn fmt::Display> {
-    match engine.get(&self.key) {
-      Ok(egg) => Box::new(egg.clone()),
+    match engine.pop(&self.key) {
+      Ok(egg) => Box::new(egg),
       Err(error) => Box::new(error),
     }
   }

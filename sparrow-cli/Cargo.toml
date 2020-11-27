@@ -7,14 +7,8 @@ name = "sparrow-cli"
 repository = "https://github.com/DonaCrio/sparrow"
 version = "0.1.0"
 
-[profile.dev]
-opt-level = 0
-
-[profile.release]
-opt-level = 3
-
 [dependencies]
-chrono = "0.4"
+sparrow = {path = '../sparrow'}
 
 [dev-dependencies]
 rstest = "0.6"
