@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use super::command::Command;
-use sparrow::Sparrow;
 use std::fmt;
 
 pub struct PopCommand {
@@ -32,10 +31,10 @@ impl Command for PopCommand {
       key: args.get(0).unwrap().to_string(),
     }
   }
-  fn execute(&self, engine: &mut Sparrow) -> Box<dyn fmt::Display> {
-    match engine.pop(&self.key) {
-      Ok(egg) => Box::new(egg),
-      Err(error) => Box::new(error),
-    }
+}
+
+impl fmt::Display for PopCommand {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+    write!(f, "pop {}", self.key)
   }
 }

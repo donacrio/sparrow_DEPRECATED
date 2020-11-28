@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use super::command::Command;
-use sparrow::Sparrow;
 use std::fmt;
 
 pub struct GetCommand {
@@ -32,10 +31,10 @@ impl Command for GetCommand {
       key: args.get(0).unwrap().to_string(),
     }
   }
-  fn execute(&self, engine: &mut Sparrow) -> Box<dyn fmt::Display> {
-    match engine.get(&self.key) {
-      Ok(egg) => Box::new(egg.clone()),
-      Err(error) => Box::new(error),
-    }
+}
+
+impl fmt::Display for GetCommand {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+    write!(f, "get {}", self.key)
   }
 }

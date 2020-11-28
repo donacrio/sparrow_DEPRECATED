@@ -15,21 +15,19 @@
 mod commands;
 
 use commands::{Command, GetCommand, InsertCommand, PopCommand};
-use sparrow::Sparrow;
 use std::error;
+use std::fmt;
 use std::io;
 
-pub struct Cli<'a> {
-  engine: &'a mut Sparrow,
-}
+pub struct Cli {}
 
-impl Cli<'_> {
-  pub fn new(engine: &'_ mut Sparrow) -> Cli {
-    Cli { engine }
+impl Cli {
+  pub fn new() -> Cli {
+    Cli {}
   }
 }
 
-impl Cli<'_> {
+impl Cli {
   pub fn run(&mut self) -> Result<(), Box<dyn error::Error>> {
     loop {
       let mut input = String::new();
@@ -38,13 +36,13 @@ impl Cli<'_> {
       let input: Vec<&str> = input.trim().split(' ').collect();
       if let Some(command_type) = input.get(0) {
         let command_args: Vec<&str> = input[1..].to_vec();
-        let result = match *command_type {
-          "insert" => InsertCommand::new(command_args).execute(&mut self.engine),
-          "get" => GetCommand::new(command_args).execute(&mut self.engine),
-          "pop" => PopCommand::new(command_args).execute(&mut self.engine),
-          _ => Box::new("Woops, this command does not exists"),
+        let result: Box<dyn fmt::Display> = match *command_type {
+          "insert" => Box::new(InsertCommand::new(command_args)),
+          "get" => Box::new(GetCommand::new(command_args)),
+          "pop" => Box::new(PopCommand::new(command_args)),
+          _ => Box::new("Not found"),
         };
-        println!("{}", result);
+        println!("Received command: {}", result);
       }
     }
   }

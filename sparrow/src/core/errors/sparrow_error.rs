@@ -11,7 +11,25 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-mod core;
-mod net;
 
-pub use self::core::SparrowEngine;
+use super::egg_not_in_nest_error::EggNotInNestError;
+
+pub type Result<T> = std::result::Result<T, SparrowError>;
+
+pub enum SparrowError {
+  EggNotInNest(EggNotInNestError),
+}
+
+impl From<EggNotInNestError> for SparrowError {
+  fn from(err: EggNotInNestError) -> SparrowError {
+    SparrowError::EggNotInNest(err)
+  }
+}
+
+impl std::fmt::Display for SparrowError {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    match *self {
+      SparrowError::EggNotInNest(ref inner) => inner.fmt(f),
+    }
+  }
+}

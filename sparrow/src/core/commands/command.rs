@@ -11,7 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-mod core;
-mod net;
 
-pub use self::core::SparrowEngine;
+use super::get_command::GetCommand;
+use super::insert_command::InsertCommand;
+use super::pop_command::PopCommand;
+
+pub enum Command {
+  Insert(InsertCommand),
+  Get(GetCommand),
+  Pop(PopCommand),
+}
