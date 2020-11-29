@@ -8,7 +8,6 @@ repository = "https://github.com/DonaCrio/sparrow"
 version = "0.1.0"
 
 [dependencies]
-sparrow = {path = '../sparrow'}
 
 [dev-dependencies]
 rstest = "0.6"

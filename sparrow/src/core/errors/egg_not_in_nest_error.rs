@@ -12,31 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::command::Command;
-use std::fmt;
-
-pub struct InsertCommand {
+#[derive(Debug, PartialEq, Eq)]
+pub struct EggNotInNestError {
   key: String,
-  value: String,
 }
 
-impl Command for InsertCommand {
-  fn new(args: Vec<&str>) -> Self {
-    if args.len() != 2 {
-      panic!(
-        "Insert command requires exactly two arguments, {} were provided",
-        args.len()
-      );
-    }
-    InsertCommand {
-      key: args.get(0).unwrap().to_string(),
-      value: args.get(1).unwrap().to_string(),
+impl EggNotInNestError {
+  pub fn new(key: &str) -> EggNotInNestError {
+    EggNotInNestError {
+      key: key.to_string(),
     }
   }
 }
 
-impl fmt::Display for InsertCommand {
-  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
-    write!(f, "insert {} {}", self.key, self.value)
+impl std::fmt::Display for EggNotInNestError {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    write!(f, "No egg with key \"{}\" was found in the nest", self.key)
   }
 }

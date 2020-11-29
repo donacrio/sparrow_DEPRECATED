@@ -12,31 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::command::Command;
-use std::fmt;
+use super::egg_not_in_nest_error::EggNotInNestError;
 
-pub struct InsertCommand {
-  key: String,
-  value: String,
+pub type Result<T> = std::result::Result<T, SparrowError>;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum SparrowError {
+  EggNotInNest(EggNotInNestError),
 }
 
-impl Command for InsertCommand {
-  fn new(args: Vec<&str>) -> Self {
-    if args.len() != 2 {
-      panic!(
-        "Insert command requires exactly two arguments, {} were provided",
-        args.len()
-      );
-    }
-    InsertCommand {
-      key: args.get(0).unwrap().to_string(),
-      value: args.get(1).unwrap().to_string(),
+impl std::error::Error for SparrowError {}
+
+impl std::fmt::Display for SparrowError {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    match *self {
+      SparrowError::EggNotInNest(ref inner) => inner.fmt(f),
     }
   }
 }
 
-impl fmt::Display for InsertCommand {
-  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
-    write!(f, "insert {} {}", self.key, self.value)
+impl From<EggNotInNestError> for SparrowError {
+  fn from(err: EggNotInNestError) -> SparrowError {
+    SparrowError::EggNotInNest(err)
   }
 }
