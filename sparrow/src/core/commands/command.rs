@@ -16,8 +16,27 @@ use super::get_command::GetCommand;
 use super::insert_command::InsertCommand;
 use super::pop_command::PopCommand;
 
+#[derive(Clone)]
 pub enum Command {
   Insert(InsertCommand),
   Get(GetCommand),
   Pop(PopCommand),
+}
+
+impl From<InsertCommand> for Command {
+  fn from(cmd: InsertCommand) -> Command {
+    Command::Insert(cmd)
+  }
+}
+
+impl From<GetCommand> for Command {
+  fn from(cmd: GetCommand) -> Command {
+    Command::Get(cmd)
+  }
+}
+
+impl From<PopCommand> for Command {
+  fn from(cmd: PopCommand) -> Command {
+    Command::Pop(cmd)
+  }
 }

@@ -12,8 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#[derive(Clone)]
 pub struct GetCommand {
   key: String,
+}
+
+impl GetCommand {
+  pub fn new(key: &str) -> GetCommand {
+    GetCommand {
+      key: key.to_string(),
+    }
+  }
 }
 
 impl GetCommand {

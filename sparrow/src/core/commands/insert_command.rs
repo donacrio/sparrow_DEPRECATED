@@ -12,9 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#[derive(Clone)]
 pub struct InsertCommand {
   key: String,
   value: String,
+}
+
+impl InsertCommand {
+  pub fn new(key: &str, value: &str) -> InsertCommand {
+    InsertCommand {
+      key: key.to_string(),
+      value: value.to_string(),
+    }
+  }
 }
 
 impl InsertCommand {

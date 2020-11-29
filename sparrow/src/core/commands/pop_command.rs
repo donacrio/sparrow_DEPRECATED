@@ -12,10 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#[derive(Clone)]
 pub struct PopCommand {
   key: String,
 }
 
+impl PopCommand {
+  pub fn new(key: &str) -> PopCommand {
+    PopCommand {
+      key: key.to_string(),
+    }
+  }
+}
 impl PopCommand {
   pub fn key(&self) -> &str {
     &self.key

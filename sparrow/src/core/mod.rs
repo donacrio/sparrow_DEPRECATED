@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod commands;
 mod egg;
-mod errors;
 mod nest;
 mod sparrow_engine;
 
+pub mod commands;
+pub mod errors;
+
+pub use egg::Egg;
 pub use sparrow_engine::SparrowEngine;
