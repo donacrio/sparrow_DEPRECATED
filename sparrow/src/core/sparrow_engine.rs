@@ -14,63 +14,77 @@
 
 use crate::core::commands::Command;
 use crate::core::egg::Egg;
-use crate::core::errors::Result;
+use crate::core::errors::{PoisonedInputQueueError, PoisonedOutputQueueError, Result};
 use crate::core::nest::Nest;
 use std::collections::VecDeque;
+use std::sync::{Arc, Mutex};
 
-type SparrowEngineOutput = Result<Option<Egg>>;
+pub type SparrowEngineInputQueue = VecDeque<Command>;
+pub type SparrowEngineOutputQueue = VecDeque<Result<Option<Egg>>>;
 
 pub struct SparrowEngine {
-  commands: VecDeque<Command>,
+  input_queue: Arc<Mutex<SparrowEngineInputQueue>>,
   nest: Nest,
-  outputs: VecDeque<SparrowEngineOutput>,
+  output_queue: Arc<Mutex<SparrowEngineOutputQueue>>,
 }
 
 impl SparrowEngine {
-  pub fn new() -> SparrowEngine {
+  pub fn new(
+    input_queue: &Arc<Mutex<SparrowEngineInputQueue>>,
+    output_queue: &Arc<Mutex<SparrowEngineOutputQueue>>,
+  ) -> SparrowEngine {
     SparrowEngine {
-      commands: VecDeque::new(),
+      input_queue: Arc::clone(input_queue),
       nest: Nest::new(),
-      outputs: VecDeque::new(),
+      output_queue: Arc::clone(output_queue),
     }
-  }
-  pub fn push_command(&mut self, command: Command) {
-    self.commands.push_back(command);
-  }
-  pub fn pop_output(&mut self) -> Option<SparrowEngineOutput> {
-    self.outputs.pop_back()
   }
 }
 
 impl SparrowEngine {
   pub fn run(&mut self) -> Result<()> {
     loop {
-      if let Some(command) = self.commands.pop_front() {
+      let mut maybe_command;
+      // Isolate queue access scope from computations to free
+      // the Mutex quicker
+      {
+        let mut queue = self
+          .input_queue
+          .lock()
+          .map_err(|err| PoisonedInputQueueError::new(&format!("{}", err)))?;
+        maybe_command = queue.pop_front();
+      }
+      if let Some(command) = maybe_command {
         let output = self.execute(command);
-        self.outputs.push_back(output);
+        let mut queue = self
+          .output_queue
+          .lock()
+          .map_err(|err| PoisonedOutputQueueError::new(&format!("{}", err)))?;
+        queue.push_back(output);
       }
     }
   }
-  fn execute(&mut self, command: Command) -> SparrowEngineOutput {
+  fn execute(&mut self, command: Command) -> Result<Option<Egg>> {
     match command {
       Command::Insert(insert_command) => self.insert(insert_command.key(), insert_command.value()),
       Command::Get(get_command) => self.get(get_command.key()),
       Command::Pop(pop_command) => self.pop(pop_command.key()),
     }
   }
-  fn insert(&mut self, key: &str, value: &str) -> SparrowEngineOutput {
+  fn insert(&mut self, key: &str, value: &str) -> Result<Option<Egg>> {
     Ok(self.nest.insert(Egg::new(key, value)))
   }
-  fn get(&self, key: &str) -> SparrowEngineOutput {
+  fn get(&self, key: &str) -> Result<Option<Egg>> {
     Ok(Some(self.nest.get(key)?.clone()))
   }
-  fn pop(&mut self, key: &str) -> SparrowEngineOutput {
+  fn pop(&mut self, key: &str) -> Result<Option<Egg>> {
     Ok(Some(self.nest.pop(key)?))
   }
 }
 
 #[cfg(test)]
 mod tests {
+  use super::*;
   use crate::core::commands::*;
   use crate::core::errors::*;
   use crate::core::{Egg, SparrowEngine};
@@ -81,12 +95,16 @@ mod tests {
 
   #[test]
   fn test_sparrow_engine_new() {
-    SparrowEngine::new();
+    let input_queue = Arc::new(Mutex::new(SparrowEngineInputQueue::new()));
+    let output_queue = Arc::new(Mutex::new(SparrowEngineOutputQueue::new()));
+    SparrowEngine::new(&input_queue, &output_queue);
   }
 
   #[fixture]
   fn sparrow_engine() -> SparrowEngine {
-    SparrowEngine::new()
+    let input_queue = Arc::new(Mutex::new(SparrowEngineInputQueue::new()));
+    let output_queue = Arc::new(Mutex::new(SparrowEngineOutputQueue::new()));
+    SparrowEngine::new(&input_queue, &output_queue)
   }
 
   #[fixture]
