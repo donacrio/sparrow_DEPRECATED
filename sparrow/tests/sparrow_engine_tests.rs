@@ -60,7 +60,7 @@ fn test_sparrow_engine() {
   thread::spawn(move || sparrow_engine.run());
 
   // Sleep current thread to let the engine process the input commands
-  thread::sleep(Duration::from_millis(1));
+  thread::sleep(Duration::from_millis(10));
 
   assert_eq!(input_queue.lock().unwrap().len(), 0);
 
