@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod egg_not_in_nest_error;
+mod poisoned_queue_error;
 mod sparrow_error;
 
-pub use egg_not_in_nest_error::EggNotInNestError;
+pub use poisoned_queue_error::{PoisonedInputQueueError, PoisonedOutputQueueError};
 pub use sparrow_error::{Result, SparrowError};

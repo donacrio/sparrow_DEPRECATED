@@ -20,4 +20,4 @@ pub mod commands;
 pub mod errors;
 
 pub use egg::Egg;
-pub use sparrow_engine::SparrowEngine;
+pub use sparrow_engine::{SparrowEngine, SparrowEngineInputQueue, SparrowEngineOutputQueue};
