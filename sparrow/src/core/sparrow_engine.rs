@@ -44,6 +44,12 @@ impl SparrowEngine {
   }
 }
 
+impl Default for SparrowEngine {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl SparrowEngine {
   pub fn run(&mut self) -> Result<()> {
     loop {
@@ -78,7 +84,7 @@ impl SparrowEngine {
     self.nest.insert(Egg::new(key, value))
   }
   fn get(&self, key: &str) -> Option<Egg> {
-    self.nest.get(key).map(|egg| egg.clone())
+    self.nest.get(key).cloned()
   }
   fn pop(&mut self, key: &str) -> Option<Egg> {
     self.nest.pop(key)
@@ -162,10 +168,7 @@ mod tests {
     insert_command: Command,
   ) {
     assert_eq!(sparrow_engine.execute(insert_command.clone()), None);
-    assert_eq!(
-      sparrow_engine.execute(insert_command.clone()),
-      Some(egg.clone())
-    );
+    assert_eq!(sparrow_engine.execute(insert_command), Some(egg));
   }
 
   #[rstest]
@@ -176,11 +179,8 @@ mod tests {
     get_command: Command,
   ) {
     assert_eq!(sparrow_engine.execute(get_command.clone()), None);
-    assert_eq!(sparrow_engine.execute(insert_command.clone()), None);
-    assert_eq!(
-      sparrow_engine.execute(get_command.clone()),
-      Some(egg.clone())
-    )
+    assert_eq!(sparrow_engine.execute(insert_command), None);
+    assert_eq!(sparrow_engine.execute(get_command), Some(egg))
   }
 
   #[rstest]
@@ -191,11 +191,8 @@ mod tests {
     get_command: Command,
     pop_command: Command,
   ) {
-    assert_eq!(sparrow_engine.execute(insert_command.clone()), None);
-    assert_eq!(
-      sparrow_engine.execute(pop_command.clone()),
-      Some(egg.clone())
-    );
-    assert_eq!(sparrow_engine.execute(get_command.clone()), None);
+    assert_eq!(sparrow_engine.execute(insert_command), None);
+    assert_eq!(sparrow_engine.execute(pop_command), Some(egg));
+    assert_eq!(sparrow_engine.execute(get_command), None);
   }
 }
