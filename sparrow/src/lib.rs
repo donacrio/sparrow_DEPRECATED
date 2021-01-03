@@ -15,4 +15,4 @@ mod core;
 mod net;
 
 pub use self::core::commands;
-pub use self::core::SparrowEngine;
+pub use self::core::{Result, SparrowEngine};
