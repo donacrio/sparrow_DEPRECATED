@@ -27,6 +27,12 @@ impl Cli {
   }
 }
 
+impl Default for Cli {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl Cli {
   pub fn run(&mut self) -> Result<(), Box<dyn error::Error>> {
     loop {
