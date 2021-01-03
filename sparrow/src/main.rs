@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod egg;
-mod nest;
-mod sparrow_engine;
+use sparrow::{Result, SparrowEngine};
 
-pub mod commands;
-pub mod errors;
-
-pub use egg::Egg;
-pub use errors::Result;
-pub use sparrow_engine::{SparrowEngine, SparrowEngineInputQueue, SparrowEngineOutputQueue};
+fn main() -> Result<()> {
+  // Create a new engine
+  let mut sparrow_engine = SparrowEngine::new();
+  sparrow_engine.run()
+}
