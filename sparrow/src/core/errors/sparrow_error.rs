@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::egg_not_in_nest_error::EggNotInNestError;
 use super::poisoned_queue_error::{PoisonedInputQueueError, PoisonedOutputQueueError};
 
 pub type Result<T> = std::result::Result<T, SparrowError>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum SparrowError {
-  EggNotInNest(EggNotInNestError),
   PoisonedInputQueue(PoisonedInputQueueError),
   PoisonedOutputQueue(PoisonedOutputQueueError),
 }
@@ -29,16 +27,9 @@ impl std::error::Error for SparrowError {}
 impl std::fmt::Display for SparrowError {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     match *self {
-      SparrowError::EggNotInNest(ref inner) => inner.fmt(f),
       SparrowError::PoisonedInputQueue(ref inner) => inner.fmt(f),
       SparrowError::PoisonedOutputQueue(ref inner) => inner.fmt(f),
     }
-  }
-}
-
-impl From<EggNotInNestError> for SparrowError {
-  fn from(err: EggNotInNestError) -> SparrowError {
-    SparrowError::EggNotInNest(err)
   }
 }
 

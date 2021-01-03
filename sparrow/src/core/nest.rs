@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use super::egg::Egg;
-use super::errors;
 use std::collections::HashMap;
 
 pub struct Nest {
@@ -32,14 +31,11 @@ impl Nest {
   pub fn insert(&mut self, egg: Egg) -> Option<Egg> {
     self.map.insert(egg.key().clone(), egg)
   }
-  pub fn get(&self, key: &str) -> Result<&Egg, errors::EggNotInNestError> {
-    self.map.get(key).ok_or(errors::EggNotInNestError::new(key))
+  pub fn get(&self, key: &str) -> Option<&Egg> {
+    self.map.get(key)
   }
-  pub fn pop(&mut self, key: &str) -> Result<Egg, errors::EggNotInNestError> {
-    self
-      .map
-      .remove(key)
-      .ok_or(errors::EggNotInNestError::new(key))
+  pub fn pop(&mut self, key: &str) -> Option<Egg> {
+    self.map.remove(key)
   }
 }
 
@@ -82,14 +78,11 @@ mod tests {
   #[rstest]
   fn test_nest_get(mut nest: Nest, egg: Egg) {
     // Egg is not in the nest
-    assert_eq!(
-      nest.get(egg.key()),
-      Err(errors::EggNotInNestError::new(egg.key()))
-    );
+    assert_eq!(nest.get(egg.key()), None);
     // Egg is inserted into the nest and its key wasn't found
     assert_eq!(nest.insert(egg.clone()), None);
     // Egg is in the nest and its value is returned
-    assert_eq!(nest.get(egg.key()), Ok(&egg))
+    assert_eq!(nest.get(egg.key()), Some(&egg))
   }
 
   #[rstest]
@@ -97,11 +90,8 @@ mod tests {
     // Egg is inserted into the nest and its key wasn't found
     assert_eq!(nest.insert(egg.clone()), None);
     // Egg is popped from the nest and returned
-    assert_eq!(nest.pop(egg.key()), Ok(egg.clone()));
+    assert_eq!(nest.pop(egg.key()), Some(egg.clone()));
     // Egg is not in the nest
-    assert_eq!(
-      nest.pop(egg.key()),
-      Err(errors::EggNotInNestError::new(egg.key()))
-    );
+    assert_eq!(nest.pop(egg.key()), None);
   }
 }

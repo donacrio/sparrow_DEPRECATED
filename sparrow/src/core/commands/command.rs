@@ -16,7 +16,7 @@ use super::get_command::GetCommand;
 use super::insert_command::InsertCommand;
 use super::pop_command::PopCommand;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Command {
   Insert(InsertCommand),
   Get(GetCommand),
