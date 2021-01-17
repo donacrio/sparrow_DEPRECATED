@@ -1,7 +1,6 @@
 ### Debian-based image for openssl compilation
 FROM ekidd/rust-musl-builder as builder
 ARG MODULE_NAME
-RUN rustup self update
 RUN rustup target add x86_64-unknown-linux-musl
 
 # Build the binary
