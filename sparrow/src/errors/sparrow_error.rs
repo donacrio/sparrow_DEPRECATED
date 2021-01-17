@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::poisoned_queue_error::PoisonedQueueError;
+use super::{CommandNotFoundError, CommandNotParsableError, PoisonedQueueError};
 
 pub type Result<T> = std::result::Result<T, SparrowError>;
 
 #[derive(Debug)]
 pub enum SparrowError {
+  CommandNotFound(CommandNotFoundError),
+  CommandNotParsable(CommandNotParsableError),
   IOError(std::io::Error),
   PoisonedQueue(PoisonedQueueError),
 }
@@ -27,9 +29,23 @@ impl std::error::Error for SparrowError {}
 impl std::fmt::Display for SparrowError {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     match *self {
+      SparrowError::CommandNotFound(ref inner) => inner.fmt(f),
+      SparrowError::CommandNotParsable(ref inner) => inner.fmt(f),
       SparrowError::IOError(ref inner) => inner.fmt(f),
       SparrowError::PoisonedQueue(ref inner) => inner.fmt(f),
     }
+  }
+}
+
+impl From<CommandNotFoundError> for SparrowError {
+  fn from(err: CommandNotFoundError) -> SparrowError {
+    SparrowError::CommandNotFound(err)
+  }
+}
+
+impl From<CommandNotParsableError> for SparrowError {
+  fn from(err: CommandNotParsableError) -> SparrowError {
+    SparrowError::CommandNotParsable(err)
   }
 }
 

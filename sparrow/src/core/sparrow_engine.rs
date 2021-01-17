@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::core::commands::Command;
-use crate::core::egg::Egg;
-use crate::core::errors::{PoisonedQueueError, Result};
-use crate::core::nest::Nest;
+use super::egg::Egg;
+use super::nest::Nest;
+use crate::commands::Command;
+use crate::errors::{PoisonedQueueError, Result};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
-pub type SparrowEngineInputQueue = VecDeque<Command>;
+pub type SparrowEngineInputQueue = VecDeque<Box<dyn Command + Send>>;
 pub type SparrowEngineOutputQueue = VecDeque<Option<Egg>>;
 
 pub struct SparrowEngine {
@@ -39,18 +39,10 @@ impl SparrowEngine {
   pub fn input_queue(&self) -> &Arc<Mutex<SparrowEngineInputQueue>> {
     &self.input_queue
   }
+
   pub fn output_queue(&self) -> &Arc<Mutex<SparrowEngineOutputQueue>> {
     &self.output_queue
   }
-}
-
-impl Default for SparrowEngine {
-  fn default() -> Self {
-    Self::new()
-  }
-}
-
-impl SparrowEngine {
   pub fn run(&mut self) -> Result<()> {
     loop {
       let maybe_command;
@@ -64,7 +56,7 @@ impl SparrowEngine {
         maybe_command = queue.pop_front();
       }
       if let Some(command) = maybe_command {
-        let output = self.execute(command);
+        let output = command.execute(self);
         let mut queue = self
           .output_queue
           .lock()
@@ -73,27 +65,28 @@ impl SparrowEngine {
       }
     }
   }
-  fn execute(&mut self, command: Command) -> Option<Egg> {
-    match command {
-      Command::Insert(insert_command) => self.insert(insert_command.key(), insert_command.value()),
-      Command::Get(get_command) => self.get(get_command.key()),
-      Command::Pop(pop_command) => self.pop(pop_command.key()),
-    }
+}
+
+impl Default for SparrowEngine {
+  fn default() -> Self {
+    Self::new()
   }
-  fn insert(&mut self, key: &str, value: &str) -> Option<Egg> {
+}
+
+impl SparrowEngine {
+  pub fn insert(&mut self, key: &str, value: &str) -> Option<Egg> {
     self.nest.insert(Egg::new(key, value))
   }
-  fn get(&self, key: &str) -> Option<Egg> {
+  pub fn get(&self, key: &str) -> Option<Egg> {
     self.nest.get(key).cloned()
   }
-  fn pop(&mut self, key: &str) -> Option<Egg> {
+  pub fn pop(&mut self, key: &str) -> Option<Egg> {
     self.nest.pop(key)
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::core::commands::*;
   use crate::core::{Egg, SparrowEngine};
   use rstest::*;
 
@@ -113,21 +106,6 @@ mod tests {
   #[fixture]
   fn egg() -> Egg {
     Egg::new(TEST_EGG_KEY, TEST_EGG_VALUE)
-  }
-
-  #[fixture]
-  fn insert_command(egg: Egg) -> Command {
-    Command::from(InsertCommand::new(egg.key(), egg.value()))
-  }
-
-  #[fixture]
-  fn get_command(egg: Egg) -> Command {
-    Command::from(GetCommand::new(egg.key()))
-  }
-
-  #[fixture]
-  fn pop_command(egg: Egg) -> Command {
-    Command::from(PopCommand::new(egg.key()))
   }
 
   #[rstest]
@@ -159,40 +137,5 @@ mod tests {
     assert_eq!(sparrow_engine.pop(egg.key()), Some(egg.clone()));
     // Egg is not in sparrow's nest
     assert_eq!(sparrow_engine.pop(egg.key()), None);
-  }
-
-  #[rstest]
-  fn test_sparrow_engine_execute_insert(
-    mut sparrow_engine: SparrowEngine,
-    egg: Egg,
-    insert_command: Command,
-  ) {
-    assert_eq!(sparrow_engine.execute(insert_command.clone()), None);
-    assert_eq!(sparrow_engine.execute(insert_command), Some(egg));
-  }
-
-  #[rstest]
-  fn test_sparrow_engine_execute_get(
-    mut sparrow_engine: SparrowEngine,
-    egg: Egg,
-    insert_command: Command,
-    get_command: Command,
-  ) {
-    assert_eq!(sparrow_engine.execute(get_command.clone()), None);
-    assert_eq!(sparrow_engine.execute(insert_command), None);
-    assert_eq!(sparrow_engine.execute(get_command), Some(egg))
-  }
-
-  #[rstest]
-  fn test_sparrow_engine_execute_pop(
-    mut sparrow_engine: SparrowEngine,
-    egg: Egg,
-    insert_command: Command,
-    get_command: Command,
-    pop_command: Command,
-  ) {
-    assert_eq!(sparrow_engine.execute(insert_command), None);
-    assert_eq!(sparrow_engine.execute(pop_command), Some(egg));
-    assert_eq!(sparrow_engine.execute(get_command), None);
   }
 }

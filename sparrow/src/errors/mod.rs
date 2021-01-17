@@ -12,8 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+mod command_not_found_error;
+mod command_not_parsable_error;
 mod poisoned_queue_error;
 mod sparrow_error;
 
+pub use command_not_found_error::CommandNotFoundError;
+pub use command_not_parsable_error::CommandNotParsableError;
 pub use poisoned_queue_error::PoisonedQueueError;
 pub use sparrow_error::{Result, SparrowError};

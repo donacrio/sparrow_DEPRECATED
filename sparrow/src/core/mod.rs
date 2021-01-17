@@ -16,9 +16,5 @@ mod egg;
 mod nest;
 mod sparrow_engine;
 
-pub mod commands;
-pub mod errors;
-
 pub use egg::Egg;
-pub use errors::Result;
 pub use sparrow_engine::{SparrowEngine, SparrowEngineInputQueue, SparrowEngineOutputQueue};

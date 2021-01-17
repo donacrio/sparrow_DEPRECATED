@@ -11,13 +11,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+use super::command::Command;
+use crate::core::{Egg, SparrowEngine};
 
-mod command;
-mod get_command;
-mod insert_command;
-mod pop_command;
+#[derive(Clone)]
+pub struct InsertCommand {
+  key: String,
+  value: String,
+}
 
-pub use command::Command;
-pub use get_command::GetCommand;
-pub use insert_command::InsertCommand;
-pub use pop_command::PopCommand;
+impl InsertCommand {
+  pub fn new(key: &str, value: &str) -> InsertCommand {
+    InsertCommand {
+      key: key.to_string(),
+      value: value.to_string(),
+    }
+  }
+}
+
+impl Command for InsertCommand {
+  fn execute(&self, sparrow_engine: &mut SparrowEngine) -> Option<Egg> {
+    sparrow_engine.insert(&self.key, &self.value)
+  }
+}

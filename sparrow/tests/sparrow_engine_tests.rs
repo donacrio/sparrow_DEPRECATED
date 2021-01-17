@@ -40,19 +40,13 @@ fn test_sparrow_engine() {
   input_queue
     .lock()
     .unwrap()
-    .push_back(Command::from(input_command));
+    .push_back(Box::new(input_command));
   input_queue
     .lock()
     .unwrap()
-    .push_back(Command::from(get_command.clone()));
-  input_queue
-    .lock()
-    .unwrap()
-    .push_back(Command::from(pop_command));
-  input_queue
-    .lock()
-    .unwrap()
-    .push_back(Command::from(get_command));
+    .push_back(Box::new(get_command.clone()));
+  input_queue.lock().unwrap().push_back(Box::new(pop_command));
+  input_queue.lock().unwrap().push_back(Box::new(get_command));
 
   assert_eq!(input_queue.lock().unwrap().len(), 4);
 

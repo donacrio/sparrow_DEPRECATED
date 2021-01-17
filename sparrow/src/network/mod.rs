@@ -11,23 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+mod sparrow_network_interface;
 
-use sparrow::errors::Result;
-use sparrow::SparrowNetworkInterface;
-// use sparrow::{Result, SparrowEngine, SparrowNetworkInterface};
-const ADDRESS: &str = "127.0.0.1:8080";
-
-fn main() -> Result<()> {
-  // Create a new engine
-  // let mut sparrow_engine = SparrowEngine::new();
-  // Run the engine
-  // TODO: run it in a different thread
-  // sparrow_engine.run()?;
-
-  // Create a new network interface
-  let sparrow_network_interface = SparrowNetworkInterface::new(ADDRESS);
-  // Run the network interface
-  sparrow_network_interface.run_tcp_server()?;
-
-  Ok(())
-}
+pub use sparrow_network_interface::SparrowNetworkInterface;

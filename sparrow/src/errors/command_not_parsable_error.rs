@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct PoisonedQueueError {
+#[derive(Debug)]
+pub struct CommandNotParsableError {
   message: String,
 }
 
-impl PoisonedQueueError {
-  pub fn new(message: &str) -> PoisonedQueueError {
-    PoisonedQueueError {
+impl CommandNotParsableError {
+  pub fn new(message: &str) -> CommandNotParsableError {
+    CommandNotParsableError {
       message: message.to_string(),
     }
   }
 }
 
-impl std::fmt::Display for PoisonedQueueError {
+impl std::fmt::Display for CommandNotParsableError {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    write!(f, "Engine queue was poisoned: {}", self.message)
+    write!(f, "Command not parsable: {}", self.message)
   }
 }

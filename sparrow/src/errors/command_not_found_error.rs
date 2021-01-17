@@ -12,31 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::get_command::GetCommand;
-use super::insert_command::InsertCommand;
-use super::pop_command::PopCommand;
-
-#[derive(Clone)]
-pub enum Command {
-  Insert(InsertCommand),
-  Get(GetCommand),
-  Pop(PopCommand),
+#[derive(Debug)]
+pub struct CommandNotFoundError {
+  message: String,
 }
 
-impl From<InsertCommand> for Command {
-  fn from(cmd: InsertCommand) -> Command {
-    Command::Insert(cmd)
+impl CommandNotFoundError {
+  pub fn new(message: &str) -> CommandNotFoundError {
+    CommandNotFoundError {
+      message: message.to_string(),
+    }
   }
 }
 
-impl From<GetCommand> for Command {
-  fn from(cmd: GetCommand) -> Command {
-    Command::Get(cmd)
-  }
-}
-
-impl From<PopCommand> for Command {
-  fn from(cmd: PopCommand) -> Command {
-    Command::Pop(cmd)
+impl std::fmt::Display for CommandNotFoundError {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    write!(f, "Command not found: {}", self.message)
   }
 }

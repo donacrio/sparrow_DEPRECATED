@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[derive(Clone)]
-pub struct GetCommand {
-  key: String,
+#[derive(Debug)]
+pub struct PoisonedQueueError {
+  message: String,
 }
 
-impl GetCommand {
-  pub fn new(key: &str) -> GetCommand {
-    GetCommand {
-      key: key.to_string(),
+impl PoisonedQueueError {
+  pub fn new(message: &str) -> PoisonedQueueError {
+    PoisonedQueueError {
+      message: message.to_string(),
     }
   }
 }
 
-impl GetCommand {
-  pub fn key(&self) -> &str {
-    &self.key
+impl std::fmt::Display for PoisonedQueueError {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    write!(f, "Engine queue was poisoned: {}", self.message)
   }
 }
