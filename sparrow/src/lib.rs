@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 mod core;
-mod net;
+mod network;
 
-pub use self::core::commands;
-pub use self::core::{Result, SparrowEngine};
-pub use self::net::SparrowNetworkInterface;
+pub mod commands;
+pub mod errors;
+
+pub use self::core::SparrowEngine;
+pub use self::network::SparrowNetworkInterface;

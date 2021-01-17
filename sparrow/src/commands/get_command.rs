@@ -11,21 +11,24 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+use super::command::Command;
+use crate::core::{Egg, SparrowEngine};
 
 #[derive(Clone)]
-pub struct PopCommand {
+pub struct GetCommand {
   key: String,
 }
 
-impl PopCommand {
-  pub fn new(key: &str) -> PopCommand {
-    PopCommand {
+impl GetCommand {
+  pub fn new(key: &str) -> GetCommand {
+    GetCommand {
       key: key.to_string(),
     }
   }
 }
-impl PopCommand {
-  pub fn key(&self) -> &str {
-    &self.key
+
+impl Command for GetCommand {
+  fn execute(&self, sparrow_engine: &mut SparrowEngine) -> Option<Egg> {
+    sparrow_engine.get(&self.key)
   }
 }
