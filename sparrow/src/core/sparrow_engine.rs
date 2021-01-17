@@ -14,7 +14,7 @@
 
 use crate::core::commands::Command;
 use crate::core::egg::Egg;
-use crate::core::errors::{PoisonedInputQueueError, PoisonedOutputQueueError, Result};
+use crate::core::errors::{PoisonedQueueError, Result};
 use crate::core::nest::Nest;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
@@ -60,7 +60,7 @@ impl SparrowEngine {
         let mut queue = self
           .input_queue
           .lock()
-          .map_err(|err| PoisonedInputQueueError::new(&format!("{}", err)))?;
+          .map_err(|err| PoisonedQueueError::new(&format!("{}", err)))?;
         maybe_command = queue.pop_front();
       }
       if let Some(command) = maybe_command {
@@ -68,7 +68,7 @@ impl SparrowEngine {
         let mut queue = self
           .output_queue
           .lock()
-          .map_err(|err| PoisonedOutputQueueError::new(&format!("{}", err)))?;
+          .map_err(|err| PoisonedQueueError::new(&format!("{}", err)))?;
         queue.push_back(output);
       }
     }

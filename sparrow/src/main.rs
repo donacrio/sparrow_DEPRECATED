@@ -12,10 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use sparrow::{Result, SparrowEngine};
+use sparrow::{Result, SparrowNetworkInterface};
+// use sparrow::{Result, SparrowEngine, SparrowNetworkInterface};
+const ADDRESS: &str = "127.0.0.1:8080";
 
 fn main() -> Result<()> {
   // Create a new engine
-  let mut sparrow_engine = SparrowEngine::new();
-  sparrow_engine.run()
+  // let mut sparrow_engine = SparrowEngine::new();
+  // Run the engine
+  // TODO: run it in a different thread
+  // sparrow_engine.run()?;
+
+  // Create a new network interface
+  let sparrow_network_interface = SparrowNetworkInterface::new(ADDRESS);
+  // Run the network interface
+  sparrow_network_interface.run_tcp_server()?;
+
+  Ok(())
 }
