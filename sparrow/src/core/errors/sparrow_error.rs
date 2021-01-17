@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::poisoned_queue_error::{PoisonedInputQueueError, PoisonedOutputQueueError};
+use super::poisoned_queue_error::PoisonedQueueError;
 
 pub type Result<T> = std::result::Result<T, SparrowError>;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum SparrowError {
-  PoisonedInputQueue(PoisonedInputQueueError),
-  PoisonedOutputQueue(PoisonedOutputQueueError),
+  IOError(std::io::Error),
+  PoisonedQueue(PoisonedQueueError),
 }
 
 impl std::error::Error for SparrowError {}
@@ -27,20 +27,20 @@ impl std::error::Error for SparrowError {}
 impl std::fmt::Display for SparrowError {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     match *self {
-      SparrowError::PoisonedInputQueue(ref inner) => inner.fmt(f),
-      SparrowError::PoisonedOutputQueue(ref inner) => inner.fmt(f),
+      SparrowError::IOError(ref inner) => inner.fmt(f),
+      SparrowError::PoisonedQueue(ref inner) => inner.fmt(f),
     }
   }
 }
 
-impl From<PoisonedInputQueueError> for SparrowError {
-  fn from(err: PoisonedInputQueueError) -> SparrowError {
-    SparrowError::PoisonedInputQueue(err)
+impl From<std::io::Error> for SparrowError {
+  fn from(err: std::io::Error) -> SparrowError {
+    SparrowError::IOError(err)
   }
 }
 
-impl From<PoisonedOutputQueueError> for SparrowError {
-  fn from(err: PoisonedOutputQueueError) -> SparrowError {
-    SparrowError::PoisonedOutputQueue(err)
+impl From<PoisonedQueueError> for SparrowError {
+  fn from(err: PoisonedQueueError) -> SparrowError {
+    SparrowError::PoisonedQueue(err)
   }
 }

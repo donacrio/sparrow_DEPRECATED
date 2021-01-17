@@ -16,3 +16,4 @@ mod net;
 
 pub use self::core::commands;
 pub use self::core::{Result, SparrowEngine};
+pub use self::net::SparrowNetworkInterface;

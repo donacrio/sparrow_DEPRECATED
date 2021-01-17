@@ -13,39 +13,20 @@
 // limitations under the License.
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct PoisonedInputQueueError {
+pub struct PoisonedQueueError {
   message: String,
 }
 
-impl PoisonedInputQueueError {
-  pub fn new(message: &str) -> PoisonedInputQueueError {
-    PoisonedInputQueueError {
+impl PoisonedQueueError {
+  pub fn new(message: &str) -> PoisonedQueueError {
+    PoisonedQueueError {
       message: message.to_string(),
     }
   }
 }
 
-impl std::fmt::Display for PoisonedInputQueueError {
+impl std::fmt::Display for PoisonedQueueError {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    write!(f, "Engine input queue was poisoned: {}", self.message)
-  }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct PoisonedOutputQueueError {
-  message: String,
-}
-
-impl PoisonedOutputQueueError {
-  pub fn new(message: &str) -> PoisonedOutputQueueError {
-    PoisonedOutputQueueError {
-      message: message.to_string(),
-    }
-  }
-}
-
-impl std::fmt::Display for PoisonedOutputQueueError {
-  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    write!(f, "Engine output queue was poisoned: {}", self.message)
+    write!(f, "Engine queue was poisoned: {}", self.message)
   }
 }

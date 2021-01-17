@@ -15,5 +15,5 @@
 mod poisoned_queue_error;
 mod sparrow_error;
 
-pub use poisoned_queue_error::{PoisonedInputQueueError, PoisonedOutputQueueError};
+pub use poisoned_queue_error::PoisonedQueueError;
 pub use sparrow_error::{Result, SparrowError};
