@@ -20,7 +20,7 @@ pub trait Command {
   fn execute(&self, sparrow_engine: &mut SparrowEngine) -> Option<Egg>;
 }
 
-pub fn parse_command(input: &str) -> Result<Box<dyn Command>> {
+pub fn parse_command(input: &str) -> Result<Box<dyn Command + Send>> {
   let input = input.split(' ').collect::<Vec<&str>>();
   match input.get(0) {
     Some(name) => match *name {

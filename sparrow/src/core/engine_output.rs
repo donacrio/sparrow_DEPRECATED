@@ -12,13 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod egg;
-mod engine_input;
-mod engine_output;
-mod nest;
-mod sparrow_engine;
+use super::egg::Egg;
 
-pub use egg::Egg;
-pub use engine_input::EngineInput;
-pub use engine_output::EngineOutput;
-pub use sparrow_engine::{SparrowEngine, SparrowEngineInputQueue, SparrowEngineOutputQueue};
+pub struct EngineOutput {
+  id: usize,
+  output: Option<Egg>,
+}
+
+impl EngineOutput {
+  pub fn new(id: usize, output: Option<Egg>) -> EngineOutput {
+    EngineOutput { id, output }
+  }
+}
+
+impl EngineOutput {
+  pub fn id(&self) -> usize {
+    self.id
+  }
+  pub fn output(&self) -> &Option<Egg> {
+    &self.output
+  }
+}

@@ -13,19 +13,25 @@
 // limitations under the License.
 
 use sparrow::errors::Result;
-use sparrow::SparrowNetworkInterface;
+use sparrow::{SparrowEngine, SparrowNetworkInterface};
+use std::sync::Arc;
+
 // use sparrow::{Result, SparrowEngine, SparrowNetworkInterface};
 const ADDRESS: &str = "127.0.0.1:8080";
 
 fn main() -> Result<()> {
   // Create a new engine
-  // let mut sparrow_engine = SparrowEngine::new();
+  let sparrow_engine = SparrowEngine::new();
   // Run the engine
   // TODO: run it in a different thread
   // sparrow_engine.run()?;
 
   // Create a new network interface
-  let sparrow_network_interface = SparrowNetworkInterface::new(ADDRESS);
+  let mut sparrow_network_interface = SparrowNetworkInterface::new(
+    ADDRESS,
+    Arc::clone(sparrow_engine.input_queue()),
+    Arc::clone(sparrow_engine.output_queue()),
+  );
   // Run the network interface
   sparrow_network_interface.run_tcp_server()?;
 

@@ -12,13 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod egg;
-mod engine_input;
-mod engine_output;
-mod nest;
-mod sparrow_engine;
+use crate::commands::Command;
 
-pub use egg::Egg;
-pub use engine_input::EngineInput;
-pub use engine_output::EngineOutput;
-pub use sparrow_engine::{SparrowEngine, SparrowEngineInputQueue, SparrowEngineOutputQueue};
+pub struct EngineInput {
+  id: usize,
+  command: Box<dyn Command + Send>,
+}
+
+impl EngineInput {
+  pub fn new(id: usize, command: Box<dyn Command + Send>) -> EngineInput {
+    EngineInput { id, command }
+  }
+}
+
+impl EngineInput {
+  pub fn id(&self) -> usize {
+    self.id
+  }
+  pub fn command(&self) -> &Box<dyn Command + Send> {
+    &self.command
+  }
+}

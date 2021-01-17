@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use sparrow::commands::*;
-use sparrow::SparrowEngine;
+use sparrow::{EngineInput, SparrowEngine};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -40,13 +40,19 @@ fn test_sparrow_engine() {
   input_queue
     .lock()
     .unwrap()
-    .push_back(Box::new(input_command));
+    .push_back(EngineInput::new(1, Box::new(input_command)));
   input_queue
     .lock()
     .unwrap()
-    .push_back(Box::new(get_command.clone()));
-  input_queue.lock().unwrap().push_back(Box::new(pop_command));
-  input_queue.lock().unwrap().push_back(Box::new(get_command));
+    .push_back(EngineInput::new(1, Box::new(get_command.clone())));
+  input_queue
+    .lock()
+    .unwrap()
+    .push_back(EngineInput::new(1, Box::new(pop_command)));
+  input_queue
+    .lock()
+    .unwrap()
+    .push_back(EngineInput::new(1, Box::new(get_command)));
 
   assert_eq!(input_queue.lock().unwrap().len(), 4);
 
@@ -64,24 +70,24 @@ fn test_sparrow_engine() {
 
   {
     let insert_output = output_queue_content.get(0).unwrap();
-    assert!(insert_output.is_none());
+    assert!(insert_output.output().is_none());
   }
   {
     let get_output = output_queue_content.get(1).unwrap().clone();
-    assert!(get_output.is_some());
-    let egg = get_output.unwrap();
+    assert!(get_output.output().is_some());
+    let egg = get_output.output().as_ref().unwrap();
     assert_eq!(egg.key(), TEST_KEY);
     assert_eq!(egg.value(), TEST_VALUE);
   }
   {
     let pop_output = output_queue_content.get(2).unwrap().clone();
-    assert!(pop_output.is_some());
-    let egg = pop_output.unwrap();
+    assert!(pop_output.output().is_some());
+    let egg = pop_output.output().as_ref().unwrap();
     assert_eq!(egg.key(), TEST_KEY);
     assert_eq!(egg.value(), TEST_VALUE);
   }
   {
     let get_output = output_queue_content.get(3).unwrap().clone();
-    assert!(get_output.is_none());
+    assert!(get_output.output().is_none());
   }
 }

@@ -13,14 +13,15 @@
 // limitations under the License.
 
 use super::egg::Egg;
+use super::engine_input::EngineInput;
+use super::engine_output::EngineOutput;
 use super::nest::Nest;
-use crate::commands::Command;
 use crate::errors::{PoisonedQueueError, Result};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
-pub type SparrowEngineInputQueue = VecDeque<Box<dyn Command + Send>>;
-pub type SparrowEngineOutputQueue = VecDeque<Option<Egg>>;
+pub type SparrowEngineInputQueue = VecDeque<EngineInput>;
+pub type SparrowEngineOutputQueue = VecDeque<EngineOutput>;
 
 pub struct SparrowEngine {
   input_queue: Arc<Mutex<SparrowEngineInputQueue>>,
@@ -45,7 +46,7 @@ impl SparrowEngine {
   }
   pub fn run(&mut self) -> Result<()> {
     loop {
-      let maybe_command;
+      let maybe_input;
       // Isolate queue access scope from computations to free
       // the Mutex quicker
       {
@@ -53,15 +54,15 @@ impl SparrowEngine {
           .input_queue
           .lock()
           .map_err(|err| PoisonedQueueError::new(&format!("{}", err)))?;
-        maybe_command = queue.pop_front();
+        maybe_input = queue.pop_front();
       }
-      if let Some(command) = maybe_command {
-        let output = command.execute(self);
+      if let Some(input) = maybe_input {
+        let output = input.command().execute(self);
         let mut queue = self
           .output_queue
           .lock()
           .map_err(|err| PoisonedQueueError::new(&format!("{}", err)))?;
-        queue.push_back(output);
+        queue.push_back(EngineOutput::new(input.id(), output));
       }
     }
   }
