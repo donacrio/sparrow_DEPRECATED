@@ -17,5 +17,5 @@ mod network;
 pub mod commands;
 pub mod errors;
 
-pub use self::core::SparrowEngine;
-pub use self::network::SparrowNetworkInterface;
+pub use self::core::{EngineInput, EngineOutput, SparrowEngine};
+pub use self::network::run_tcp_server;

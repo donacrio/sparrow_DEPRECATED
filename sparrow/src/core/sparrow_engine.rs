@@ -13,55 +13,56 @@
 // limitations under the License.
 
 use super::egg::Egg;
+use super::engine_input::EngineInput;
+use super::engine_output::EngineOutput;
 use super::nest::Nest;
-use crate::commands::Command;
 use crate::errors::{PoisonedQueueError, Result};
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
-pub type SparrowEngineInputQueue = VecDeque<Box<dyn Command + Send>>;
-pub type SparrowEngineOutputQueue = VecDeque<Option<Egg>>;
+pub type SparrowEngineInputs = VecDeque<EngineInput>;
+pub type SparrowEngineOutputs = HashMap<usize, EngineOutput>;
 
 pub struct SparrowEngine {
-  input_queue: Arc<Mutex<SparrowEngineInputQueue>>,
+  inputs: Arc<Mutex<SparrowEngineInputs>>,
   nest: Nest,
-  output_queue: Arc<Mutex<SparrowEngineOutputQueue>>,
+  outputs: Arc<Mutex<SparrowEngineOutputs>>,
 }
 
 impl SparrowEngine {
   pub fn new() -> SparrowEngine {
     SparrowEngine {
-      input_queue: Arc::new(Mutex::new(SparrowEngineInputQueue::new())),
+      inputs: Arc::new(Mutex::new(SparrowEngineInputs::new())),
       nest: Nest::new(),
-      output_queue: Arc::new(Mutex::new(SparrowEngineOutputQueue::new())),
+      outputs: Arc::new(Mutex::new(SparrowEngineOutputs::new())),
     }
   }
-  pub fn input_queue(&self) -> &Arc<Mutex<SparrowEngineInputQueue>> {
-    &self.input_queue
+  pub fn inputs(&self) -> &Arc<Mutex<SparrowEngineInputs>> {
+    &self.inputs
   }
 
-  pub fn output_queue(&self) -> &Arc<Mutex<SparrowEngineOutputQueue>> {
-    &self.output_queue
+  pub fn outputs(&self) -> &Arc<Mutex<SparrowEngineOutputs>> {
+    &self.outputs
   }
   pub fn run(&mut self) -> Result<()> {
     loop {
-      let maybe_command;
+      let maybe_input;
       // Isolate queue access scope from computations to free
       // the Mutex quicker
       {
-        let mut queue = self
-          .input_queue
+        let mut inputs = self
+          .inputs
           .lock()
           .map_err(|err| PoisonedQueueError::new(&format!("{}", err)))?;
-        maybe_command = queue.pop_front();
+        maybe_input = inputs.pop_front();
       }
-      if let Some(command) = maybe_command {
-        let output = command.execute(self);
-        let mut queue = self
-          .output_queue
+      if let Some(input) = maybe_input {
+        let output = input.command().execute(self);
+        self
+          .outputs
           .lock()
-          .map_err(|err| PoisonedQueueError::new(&format!("{}", err)))?;
-        queue.push_back(output);
+          .map_err(|err| PoisonedQueueError::new(&format!("{}", err)))?
+          .insert(input.id(), EngineOutput::new(input.id(), output));
       }
     }
   }

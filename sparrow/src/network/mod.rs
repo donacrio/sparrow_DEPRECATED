@@ -13,4 +13,4 @@
 // limitations under the License.
 mod sparrow_network_interface;
 
-pub use sparrow_network_interface::SparrowNetworkInterface;
+pub use sparrow_network_interface::run_tcp_server;

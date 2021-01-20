@@ -20,9 +20,9 @@ pub trait Command {
   fn execute(&self, sparrow_engine: &mut SparrowEngine) -> Option<Egg>;
 }
 
-pub fn parse_command(input: &str) -> Result<Box<dyn Command>> {
-  let input = input.split(' ').collect::<Vec<&str>>();
-  match input.get(0) {
+pub fn parse_command(input: &str) -> Result<Box<dyn Command + Send>> {
+  let inputs = input.split(' ').collect::<Vec<&str>>();
+  match inputs.get(0) {
     Some(name) => match *name {
       "GET" => Ok(Box::new(GetCommand::new("test"))),
       "INSERT" => Ok(Box::new(InsertCommand::new("test", "test"))),
@@ -32,7 +32,7 @@ pub fn parse_command(input: &str) -> Result<Box<dyn Command>> {
       ))),
     },
     None => Err(SparrowError::CommandNotParsable(
-      CommandNotParsableError::new("test"),
+      CommandNotParsableError::new(input),
     )),
   }
 }
