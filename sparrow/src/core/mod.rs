@@ -21,4 +21,4 @@ mod sparrow_engine;
 pub use egg::Egg;
 pub use engine_input::EngineInput;
 pub use engine_output::EngineOutput;
-pub use sparrow_engine::{SparrowEngine, SparrowEngineInputQueue, SparrowEngineOutputQueue};
+pub use sparrow_engine::{SparrowEngine, SparrowEngineInputs, SparrowEngineOutputs};

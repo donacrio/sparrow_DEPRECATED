@@ -29,6 +29,7 @@ impl EngineInput {
   pub fn id(&self) -> usize {
     self.id
   }
+  #[allow(clippy::borrowed_box)]
   pub fn command(&self) -> &Box<dyn Command + Send> {
     &self.command
   }
