@@ -12,24 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::egg::Egg;
-
-pub struct EngineOutput {
+pub struct Message<T> {
   id: usize,
-  output: Option<Egg>,
+  content: T,
 }
 
-impl EngineOutput {
-  pub fn new(id: usize, output: Option<Egg>) -> EngineOutput {
-    EngineOutput { id, output }
+impl<T> Message<T> {
+  pub fn new(id: usize, content: T) -> Message<T> {
+    Message { id, content }
   }
 }
 
-impl EngineOutput {
+impl<T> Message<T> {
   pub fn id(&self) -> usize {
     self.id
   }
-  pub fn output(&self) -> &Option<Egg> {
-    &self.output
+  pub fn content(&self) -> &T {
+    &self.content
   }
 }

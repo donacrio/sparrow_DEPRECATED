@@ -13,17 +13,15 @@
 // limitations under the License.
 
 use sparrow::errors::Result;
-use sparrow::{run_tcp_server, SparrowEngine};
-use std::sync::Arc;
+use sparrow::{run_tcp_server, Engine};
 
 // use sparrow::{Result, SparrowEngine, SparrowNetworkInterface};
 const ADDRESS: &str = "127.0.0.1:8080";
 
 fn main() -> Result<()> {
   // Create a new engine
-  let mut sparrow_engine = SparrowEngine::new();
-  let sparrow_engine_inputs = Arc::clone(sparrow_engine.inputs());
-  let sparrow_engine_outputs = Arc::clone(sparrow_engine.outputs());
+  let mut sparrow_engine = Engine::new();
+  let (sender, receiver) = sparrow_engine.init();
   // Run the engine
   // TODO: run it in a different thread
   let sparrow_engine_thread = std::thread::spawn(move || -> Result<()> {
@@ -33,7 +31,7 @@ fn main() -> Result<()> {
 
   // Run the network interface
   let sparrow_net_thread = std::thread::spawn(move || -> Result<()> {
-    run_tcp_server(ADDRESS, sparrow_engine_inputs, sparrow_engine_outputs)?;
+    run_tcp_server(ADDRESS, sender, receiver)?;
     Ok(())
   });
 

@@ -20,7 +20,7 @@ pub type Result<T> = std::result::Result<T, SparrowError>;
 pub enum SparrowError {
   CommandNotFound(CommandNotFoundError),
   CommandNotParsable(CommandNotParsableError),
-  IOError(std::io::Error),
+  IoError(std::io::Error),
   PoisonedQueue(PoisonedQueueError),
 }
 
@@ -31,7 +31,7 @@ impl std::fmt::Display for SparrowError {
     match *self {
       SparrowError::CommandNotFound(ref inner) => inner.fmt(f),
       SparrowError::CommandNotParsable(ref inner) => inner.fmt(f),
-      SparrowError::IOError(ref inner) => inner.fmt(f),
+      SparrowError::IoError(ref inner) => inner.fmt(f),
       SparrowError::PoisonedQueue(ref inner) => inner.fmt(f),
     }
   }
@@ -51,7 +51,7 @@ impl From<CommandNotParsableError> for SparrowError {
 
 impl From<std::io::Error> for SparrowError {
   fn from(err: std::io::Error) -> SparrowError {
-    SparrowError::IOError(err)
+    SparrowError::IoError(err)
   }
 }
 

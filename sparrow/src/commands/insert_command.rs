@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use super::command::Command;
-use crate::core::{Egg, SparrowEngine};
+use crate::core::{Egg, Engine};
 
 #[derive(Clone)]
 pub struct InsertCommand {
@@ -30,7 +30,7 @@ impl InsertCommand {
 }
 
 impl Command for InsertCommand {
-  fn execute(&self, sparrow_engine: &mut SparrowEngine) -> Option<Egg> {
+  fn execute(&self, sparrow_engine: &mut Engine) -> Option<Egg> {
     sparrow_engine.insert(&self.key, &self.value)
   }
 }
