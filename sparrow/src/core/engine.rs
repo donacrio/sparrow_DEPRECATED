@@ -13,68 +13,61 @@
 // limitations under the License.
 
 use super::egg::Egg;
-use super::engine_input::EngineInput;
-use super::engine_output::EngineOutput;
+use super::message::Message;
 use super::nest::Nest;
-use crate::errors::{PoisonedQueueError, Result};
-use std::collections::{HashMap, VecDeque};
-use std::sync::{Arc, Mutex};
+use crate::commands::Command;
+use crate::errors::Result;
+use std::sync::mpsc;
 
-pub type SparrowEngineInputs = VecDeque<EngineInput>;
-pub type SparrowEngineOutputs = HashMap<usize, EngineOutput>;
+// TODO: refactor this for generic immutable struct
+pub type EngineInput = Message<Box<dyn Command>>;
+pub type EngineOutput = Message<Option<Egg>>;
 
-pub struct SparrowEngine {
-  inputs: Arc<Mutex<SparrowEngineInputs>>,
+pub struct Engine {
   nest: Nest,
-  outputs: Arc<Mutex<SparrowEngineOutputs>>,
+  receiver: Option<mpsc::Receiver<EngineInput>>,
+  sender: Option<mpsc::Sender<EngineOutput>>,
 }
 
-impl SparrowEngine {
-  pub fn new() -> SparrowEngine {
-    SparrowEngine {
-      inputs: Arc::new(Mutex::new(SparrowEngineInputs::new())),
+impl Engine {
+  pub fn new() -> Engine {
+    Engine {
       nest: Nest::new(),
-      outputs: Arc::new(Mutex::new(SparrowEngineOutputs::new())),
+      receiver: None,
+      sender: None,
     }
   }
-  pub fn inputs(&self) -> &Arc<Mutex<SparrowEngineInputs>> {
-    &self.inputs
+
+  pub fn init(&mut self) -> (mpsc::Sender<EngineInput>, mpsc::Receiver<EngineOutput>) {
+    let (input_sender, input_receiver) = mpsc::channel::<EngineInput>();
+    let (output_sender, output_receiver) = mpsc::channel::<EngineOutput>();
+    self.receiver = Some(input_receiver);
+    self.sender = Some(output_sender);
+    (input_sender, output_receiver)
   }
 
-  pub fn outputs(&self) -> &Arc<Mutex<SparrowEngineOutputs>> {
-    &self.outputs
-  }
   pub fn run(&mut self) -> Result<()> {
     loop {
-      let maybe_input;
-      // Isolate queue access scope from computations to free
-      // the Mutex quicker
-      {
-        let mut inputs = self
-          .inputs
-          .lock()
-          .map_err(|err| PoisonedQueueError::new(&format!("{}", err)))?;
-        maybe_input = inputs.pop_front();
-      }
-      if let Some(input) = maybe_input {
-        let output = input.command().execute(self);
-        self
-          .outputs
-          .lock()
-          .map_err(|err| PoisonedQueueError::new(&format!("{}", err)))?
-          .insert(input.id(), EngineOutput::new(input.id(), output));
-      }
+      // TODO: create corresponding sparrow error
+      let receiver = self.receiver.as_ref().unwrap();
+      // TODO: create corresponding sparrow error
+      let input = receiver.recv().unwrap();
+      let command = input.content();
+      let output = command.execute(self);
+      let sender = self.sender.as_ref().unwrap();
+      // TODO: create corresponding sparrow error
+      sender.send(EngineOutput::new(input.id(), output)).unwrap();
     }
   }
 }
 
-impl Default for SparrowEngine {
+impl Default for Engine {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl SparrowEngine {
+impl Engine {
   pub fn insert(&mut self, key: &str, value: &str) -> Option<Egg> {
     self.nest.insert(Egg::new(key, value))
   }
@@ -88,7 +81,7 @@ impl SparrowEngine {
 
 #[cfg(test)]
 mod tests {
-  use crate::core::{Egg, SparrowEngine};
+  use crate::core::{Egg, Engine};
   use rstest::*;
 
   const TEST_EGG_KEY: &str = "test";
@@ -96,12 +89,12 @@ mod tests {
 
   #[test]
   fn test_sparrow_engine_new() {
-    SparrowEngine::new();
+    Engine::new();
   }
 
   #[fixture]
-  fn sparrow_engine() -> SparrowEngine {
-    SparrowEngine::new()
+  fn sparrow_engine() -> Engine {
+    Engine::new()
   }
 
   #[fixture]
@@ -110,7 +103,7 @@ mod tests {
   }
 
   #[rstest]
-  fn test_sparrow_engine_insert(mut sparrow_engine: SparrowEngine, egg: Egg) {
+  fn test_sparrow_engine_insert(mut sparrow_engine: Engine, egg: Egg) {
     // Egg is inserted into sparrow's nest and its key wasn't found
     assert_eq!(sparrow_engine.insert(egg.key(), egg.value()), None);
     // Egg is inserted into sparrow's nest and the egg previously associated to its key is returned
@@ -121,7 +114,7 @@ mod tests {
   }
 
   #[rstest]
-  fn test_sparrow_engine_get(mut sparrow_engine: SparrowEngine, egg: Egg) {
+  fn test_sparrow_engine_get(mut sparrow_engine: Engine, egg: Egg) {
     // Egg is not in sparrow's nest
     assert_eq!(sparrow_engine.get(egg.key()), None);
     // Egg is inserted into sparrow's nest and its key wasn't found
@@ -131,7 +124,7 @@ mod tests {
   }
 
   #[rstest]
-  fn test_sparrow_engine_pop(mut sparrow_engine: SparrowEngine, egg: Egg) {
+  fn test_sparrow_engine_pop(mut sparrow_engine: Engine, egg: Egg) {
     // Egg is inserted into sparrow's nest and its key wasn't found
     assert_eq!(sparrow_engine.insert(egg.key(), egg.value()), None);
     // Egg is popped from sparrow's nest and returned

@@ -11,24 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use super::command::Command;
-use crate::core::{Egg, Engine};
 
-#[derive(Clone)]
-pub struct PopCommand {
-  key: String,
-}
-
-impl PopCommand {
-  pub fn new(key: &str) -> PopCommand {
-    PopCommand {
-      key: key.to_string(),
-    }
-  }
-}
-
-impl Command for PopCommand {
-  fn execute(&self, sparrow_engine: &mut Engine) -> Option<Egg> {
-    sparrow_engine.pop(&self.key)
-  }
-}
+pub mod errors;
+pub mod mio;

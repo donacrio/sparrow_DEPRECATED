@@ -12,25 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::commands::Command;
-
-pub struct EngineInput {
-  id: usize,
-  command: Box<dyn Command + Send>,
-}
-
-impl EngineInput {
-  pub fn new(id: usize, command: Box<dyn Command + Send>) -> EngineInput {
-    EngineInput { id, command }
-  }
-}
-
-impl EngineInput {
-  pub fn id(&self) -> usize {
-    self.id
-  }
-  #[allow(clippy::borrowed_box)]
-  pub fn command(&self) -> &Box<dyn Command + Send> {
-    &self.command
-  }
+pub fn next_token(current: &mut mio::Token) -> mio::Token {
+  let next = current.0;
+  current.0 += 1;
+  mio::Token(next)
 }

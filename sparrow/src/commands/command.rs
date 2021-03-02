@@ -13,11 +13,11 @@
 // limitations under the License.
 
 use super::{GetCommand, InsertCommand, PopCommand};
-use crate::core::{Egg, SparrowEngine};
+use crate::core::{Egg, Engine};
 use crate::errors::{CommandNotFoundError, CommandNotParsableError, Result, SparrowError};
 
-pub trait Command {
-  fn execute(&self, sparrow_engine: &mut SparrowEngine) -> Option<Egg>;
+pub trait Command: Send {
+  fn execute(&self, sparrow_engine: &mut Engine) -> Option<Egg>;
 }
 
 pub fn parse_command(input: &str) -> Result<Box<dyn Command + Send>> {

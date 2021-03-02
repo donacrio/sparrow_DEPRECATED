@@ -13,13 +13,15 @@
 // limitations under the License.
 
 use crate::commands::parse_command;
-use crate::core::{EngineInput, SparrowEngineInputs, SparrowEngineOutputs};
-use crate::errors::{CommandNotParsableError, PoisonedQueueError, Result, SparrowError};
+use crate::core::{EngineInput, EngineOutput};
+use crate::errors::{CommandNotParsableError, Result, SparrowError};
+use crate::utils;
 use mio::event::Event;
 use mio::net::{TcpListener, TcpStream};
-use mio::{Events, Interest, Poll, Registry, Token};
+use mio::{Events, Interest, Poll, Token};
 use std::collections::HashMap;
 use std::io::{self, Read, Write};
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
 // Setup reserved server token to identify which events are for the TCP server socket
@@ -27,13 +29,11 @@ const SERVER: Token = Token(0);
 
 pub fn run_tcp_server(
   address: &str,
-  mut engine_inputs: Arc<Mutex<SparrowEngineInputs>>,
-  mut engine_outputs: Arc<Mutex<SparrowEngineOutputs>>,
+  sender: mpsc::Sender<EngineInput>,
+  receiver: mpsc::Receiver<EngineOutput>,
 ) -> Result<()> {
   // Create a poll instance.
   let poll = Poll::new()?;
-  // Create storage for events.
-  let events = Events::with_capacity(128);
   // Setup the TCP server socket.
   let addr = address.parse().unwrap();
   let mut server = TcpListener::bind(addr)?;
@@ -42,31 +42,44 @@ pub fn run_tcp_server(
     .registry()
     .register(&mut server, SERVER, Interest::READABLE)?;
   // Map of `Token` -> `TcpStream`.
-  let connections = HashMap::<Token, TcpStream>::new();
+  // TODO: Create struct to use message passing instead
+  let poll = Arc::new(Mutex::new(poll));
+  let connections = Arc::new(Mutex::new(HashMap::<Token, TcpStream>::new()));
 
   println!("Server ready to accept connections on at {}", address);
-  handle_connections(
-    poll,
-    events,
-    server,
-    connections,
-    &mut engine_inputs,
-    &mut engine_outputs,
-  )
+
+  let t1_poll = poll.clone();
+  let t1_connections = connections.clone();
+  let t1 = std::thread::spawn(move || -> Result<()> {
+    handle_incoming_connections(&t1_poll, server, &t1_connections, &sender)
+  });
+
+  let t2_poll = poll;
+  let t2_connections = connections;
+  let t2 = std::thread::spawn(move || -> Result<()> {
+    handle_engine_outcomes(&t2_poll, &t2_connections, receiver)
+  });
+
+  t1.join().unwrap()?;
+  t2.join().unwrap()?;
+
+  Ok(())
 }
 
-fn handle_connections(
-  mut poll: Poll,
-  mut events: Events,
+fn handle_incoming_connections(
+  poll: &Arc<Mutex<Poll>>,
   server: TcpListener,
-  mut connections: HashMap<Token, TcpStream>,
-  engine_inputs: &mut Arc<Mutex<SparrowEngineInputs>>,
-  engine_outputs: &mut Arc<Mutex<SparrowEngineOutputs>>,
+  connections: &Arc<Mutex<HashMap<Token, TcpStream>>>,
+  sender: &mpsc::Sender<EngineInput>,
 ) -> Result<()> {
   // Unique token to identify each incoming connection.
   let mut unique_token = Token(SERVER.0 + 1);
+  // Create storage for events.
+  let mut events = Events::with_capacity(128);
   loop {
-    poll.poll(&mut events, None)?;
+    {
+      poll.lock().unwrap().poll(&mut events, None)?;
+    }
     for event in events.iter() {
       match event.token() {
         SERVER => loop {
@@ -84,46 +97,35 @@ fn handle_connections(
             Err(e) => {
               // If it was any other kind of error, something went
               // wrong and we terminate with an error.
-              return Err(SparrowError::IOError(e));
+              return Err(SparrowError::IoError(e));
             }
           };
 
           println!("Accepted connection from: {}", address);
 
-          let token = next(&mut unique_token);
-          poll
-            .registry()
-            .register(&mut connection, token, Interest::READABLE)?;
+          let token = utils::mio::next_token(&mut unique_token);
+          {
+            poll
+              .lock()
+              .unwrap()
+              .registry()
+              .register(&mut connection, token, Interest::READABLE)?;
+          }
 
-          connections.insert(token, connection);
+          {
+            connections.lock().unwrap().insert(token, connection);
+          }
         },
         token => {
           // Maybe received an event for a TCP connection.
           let mut done = false;
-          if let Some(mut connection) = connections.get_mut(&token) {
+          if let Some(mut connection) = connections.lock().unwrap().get_mut(&token) {
             if event.is_readable() {
-              done = handle_readable_connection_event(
-                poll.registry(),
-                &mut connection,
-                event,
-                engine_inputs,
-              )?;
-            }
-            if event.is_writable() {
-              handle_writable_connection_event(
-                poll.registry(),
-                &mut connection,
-                event,
-                engine_outputs,
-              )?;
+              done = handle_readable_connection_event(poll, &mut connection, event, sender)?;
             }
           };
           if done {
-            connections.remove(&token);
-            engine_outputs
-              .lock()
-              .map_err(|err| PoisonedQueueError::new(&format!("{}", err)))?
-              .remove(&token.0);
+            connections.lock().unwrap().remove(&token);
           }
         }
       }
@@ -132,10 +134,10 @@ fn handle_connections(
 }
 
 fn handle_readable_connection_event(
-  registry: &Registry,
+  poll: &Arc<Mutex<Poll>>,
   connection: &mut TcpStream,
   event: &Event,
-  engine_input_queue: &mut Arc<Mutex<SparrowEngineInputs>>,
+  sender: &mpsc::Sender<EngineInput>,
 ) -> Result<bool> {
   // If the connection exists we handle it
 
@@ -155,16 +157,16 @@ fn handle_readable_connection_event(
           received_data.resize(received_data.len() + 1024, 0);
         }
       }
-      Err(ref err) if would_block(err) => break,
-      Err(ref err) if interrupted(err) => continue,
-      Err(err) => return Err(SparrowError::IOError(err)),
+      Err(ref err) if utils::errors::would_block(err) => break,
+      Err(ref err) if utils::errors::interrupted(err) => continue,
+      Err(err) => return Err(SparrowError::IoError(err)),
     }
   }
 
   if bytes_read != 0 {
     let received_data = &received_data[..bytes_read];
-    match handle_command(&event.token(), received_data, engine_input_queue) {
-      Ok(_) => registry.reregister(
+    match handle_command(&event.token(), received_data, sender) {
+      Ok(_) => poll.lock().unwrap().registry().reregister(
         connection,
         event.token(),
         Interest::READABLE.add(Interest::WRITABLE),
@@ -173,9 +175,9 @@ fn handle_readable_connection_event(
         println!("{}", err);
         match connection.write_all(format!("{}\n", err).as_bytes()) {
           Ok(_) => {}
-          Err(ref err) if would_block(err) || interrupted(err) => {}
+          Err(ref err) if utils::errors::would_block(err) || utils::errors::interrupted(err) => {}
           // Other errors we'll consider fatal.
-          Err(err) => return Err(SparrowError::IOError(err)),
+          Err(err) => return Err(SparrowError::IoError(err)),
         }
       }
     };
@@ -192,57 +194,41 @@ fn handle_readable_connection_event(
 fn handle_command(
   token: &Token,
   received_data: &[u8],
-  engine_inputs: &mut Arc<Mutex<SparrowEngineInputs>>,
+  sender: &mpsc::Sender<EngineInput>,
 ) -> Result<()> {
   let str_buf = std::str::from_utf8(received_data)
     .map_err(|err| CommandNotParsableError::new(&format!("{}", err)))?;
   let command = parse_command(str_buf.trim_end())?;
-  engine_inputs
-    .lock()
-    .map_err(|err| PoisonedQueueError::new(&format!("{}", err)))?
-    .push_back(EngineInput::new(token.0, command));
+  //TODO: handle this error
+  sender.send(EngineInput::new(token.0, command)).unwrap();
   Ok(())
 }
 
-fn handle_writable_connection_event(
-  registry: &Registry,
-  connection: &mut TcpStream,
-  event: &Event,
-  engine_outputs: &mut Arc<Mutex<SparrowEngineOutputs>>,
+fn handle_engine_outcomes(
+  poll: &Arc<Mutex<Poll>>,
+  connections: &Arc<Mutex<HashMap<Token, TcpStream>>>,
+  receiver: mpsc::Receiver<EngineOutput>,
 ) -> Result<()> {
-  if let Some(output) = engine_outputs
-    .lock()
-    .map_err(|err| PoisonedQueueError::new(&format!("{}", err)))?
-    .remove(&event.token().0)
-  {
-    let data = format!("{:?}\n", output.output());
-    // We can (maybe) write to the connection.
-    match connection.write_all(data.as_bytes()) {
-      Ok(_) => {
-        // After we've written something we'll reregister the connection
-        // to only respond to readable events.
-        registry.reregister(connection, event.token(), Interest::READABLE)?
+  loop {
+    let output = receiver.recv().unwrap();
+    let token = Token(output.id());
+    if let Some(connection) = connections.lock().unwrap().get_mut(&token) {
+      let data = format!("{:?}\n", output.content());
+      // We can (maybe) write to the connection.
+      match connection.write_all(data.as_bytes()) {
+        Ok(_) => {
+          // After we've written something we'll reregister the connection
+          // to only respond to readable events.
+          poll
+            .lock()
+            .unwrap()
+            .registry()
+            .reregister(connection, token, Interest::READABLE)?
+        }
+        Err(ref err) if utils::errors::would_block(err) || utils::errors::interrupted(err) => {}
+        // Other errors we'll consider fatal.
+        Err(err) => return Err(SparrowError::IoError(err)),
       }
-      Err(ref err) if would_block(err) || interrupted(err) => {}
-      // Other errors we'll consider fatal.
-      Err(err) => return Err(SparrowError::IOError(err)),
     }
-  } else {
-    registry.reregister(connection, event.token(), Interest::WRITABLE)?
   }
-  Ok(())
-}
-
-fn next(current: &mut Token) -> Token {
-  let next = current.0;
-  current.0 += 1;
-  Token(next)
-}
-
-fn would_block(err: &io::Error) -> bool {
-  err.kind() == io::ErrorKind::WouldBlock
-}
-
-fn interrupted(err: &io::Error) -> bool {
-  err.kind() == io::ErrorKind::Interrupted
 }

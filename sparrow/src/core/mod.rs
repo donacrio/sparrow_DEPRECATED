@@ -13,12 +13,9 @@
 // limitations under the License.
 
 mod egg;
-mod engine_input;
-mod engine_output;
+mod engine;
+mod message;
 mod nest;
-mod sparrow_engine;
 
 pub use egg::Egg;
-pub use engine_input::EngineInput;
-pub use engine_output::EngineOutput;
-pub use sparrow_engine::{SparrowEngine, SparrowEngineInputs, SparrowEngineOutputs};
+pub use engine::{Engine, EngineInput, EngineOutput};

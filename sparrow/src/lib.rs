@@ -13,9 +13,10 @@
 // limitations under the License.
 mod core;
 mod network;
+mod utils;
 
 pub mod commands;
 pub mod errors;
 
-pub use self::core::{EngineInput, EngineOutput, SparrowEngine};
+pub use self::core::{Engine, EngineInput, EngineOutput};
 pub use self::network::run_tcp_server;
