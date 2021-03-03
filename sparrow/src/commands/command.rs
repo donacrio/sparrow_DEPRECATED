@@ -27,10 +27,8 @@ pub fn parse_command(input: &str) -> Result<Box<dyn Command + Send>> {
       "GET" => Ok(Box::new(GetCommand::new("test"))),
       "INSERT" => Ok(Box::new(InsertCommand::new("test", "test"))),
       "POP" => Ok(Box::new(PopCommand::new("test"))),
-      unknown => Err(format!("Command not found: {}", unknown))?,
+      unknown => Err(format!("Command not found: {}", unknown).into()),
     },
-    None => Err(format!(
-      "Command not parsable: Input string not space-separated"
-    ))?,
+    None => Err("Command not parsable: Input string not space-separated".into()),
   }
 }

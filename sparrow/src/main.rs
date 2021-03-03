@@ -18,16 +18,23 @@ const ADDRESS: &str = "127.0.0.1:8080";
 
 fn main() {
   // Create a new engine
-  let mut sparrow_engine = Engine::new();
-  let (sender, receiver) = sparrow_engine.init();
+  let mut engine = Engine::new();
+  let (sender, receiver) = engine.init();
+
+  // take_hook() returns the default hook in case when a custom one is not set
+  let orig_hook = std::panic::take_hook();
+  std::panic::set_hook(Box::new(move |panic_info| {
+    // invoke the default handler and exit the process
+    orig_hook(panic_info);
+    std::process::exit(1);
+  }));
+
   // Run the engine
-  // TODO: run it in a different thread
-  let sparrow_engine_thread = std::thread::spawn(move || sparrow_engine.run().unwrap());
+  let t1 = std::thread::spawn(move || engine.run().unwrap());
 
   // Run the network interface
-  let sparrow_net_thread =
-    std::thread::spawn(move || run_tcp_server(ADDRESS, sender, receiver).unwrap());
+  let t2 = std::thread::spawn(move || run_tcp_server(ADDRESS, sender, receiver).unwrap());
 
-  sparrow_engine_thread.join().unwrap();
-  sparrow_net_thread.join().unwrap();
+  t1.join().unwrap();
+  t2.join().unwrap();
 }
