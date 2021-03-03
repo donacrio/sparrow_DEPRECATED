@@ -37,7 +37,15 @@ impl Engine {
       sender: None,
     }
   }
+}
 
+impl Default for Engine {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+impl Engine {
   pub fn init(&mut self) -> (mpsc::Sender<EngineInput>, mpsc::Receiver<EngineOutput>) {
     let (input_sender, input_receiver) = mpsc::channel::<EngineInput>();
     let (output_sender, output_receiver) = mpsc::channel::<EngineOutput>();
@@ -46,28 +54,11 @@ impl Engine {
     (input_sender, output_receiver)
   }
 
-  pub fn run(&mut self) -> Result<()> {
-    loop {
-      let receiver = self
-        .receiver
-        .as_ref()
-        .ok_or("Sparrow engine is not initialized")?;
-
-      let input = receiver.recv()?;
-      let command = input.content();
-      let output = command.execute(self);
-      let sender = self
-        .sender
-        .as_ref()
-        .ok_or("Sparrow engine is not initialized")?;
-      sender.send(EngineOutput::new(input.id(), output))?;
-    }
-  }
-}
-
-impl Default for Engine {
-  fn default() -> Self {
-    Self::new()
+  pub fn process(&mut self, input: EngineInput) -> EngineOutput {
+    let id = input.id();
+    let command = input.content();
+    let output = command.execute(self);
+    EngineOutput::new(id, output)
   }
 }
 
@@ -80,6 +71,24 @@ impl Engine {
   }
   pub fn pop(&mut self, key: &str) -> Option<Egg> {
     self.nest.pop(key)
+  }
+}
+
+pub fn run_engine(mut engine: Engine) -> Result<()> {
+  loop {
+    let receiver = engine
+      .receiver
+      .as_ref()
+      .ok_or("Sparrow engine is not initialized")?;
+    let input = receiver.recv()?;
+
+    let output = engine.process(input);
+
+    let sender = engine
+      .sender
+      .as_ref()
+      .ok_or("Sparrow engine is not initialized")?;
+    sender.send(output)?;
   }
 }
 
