@@ -13,6 +13,7 @@
 // limitations under the License.
 use super::command::Command;
 use crate::core::{Egg, Engine};
+use crate::errors::Result;
 
 #[derive(Clone)]
 pub struct GetCommand {
@@ -20,9 +21,21 @@ pub struct GetCommand {
 }
 
 impl GetCommand {
-  pub fn new(key: &str) -> GetCommand {
-    GetCommand {
-      key: key.to_string(),
+  pub fn new(args: &[&str]) -> Result<GetCommand> {
+    match args.len() {
+      1 => {
+        let key = args.get(0).unwrap();
+        Ok(GetCommand {
+          key: key.to_string(),
+        })
+      }
+      n => Err(
+        format!(
+          "Cannot parse GET command arguments: Wrong number of arguments. Expected 1, got {}.",
+          n
+        )
+        .into(),
+      ),
     }
   }
 }

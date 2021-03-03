@@ -18,6 +18,5 @@ mod utils;
 
 pub mod commands;
 
-pub use self::core::{run_engine, Engine};
-pub use self::errors::Result;
+pub use self::core::{run_engine, Engine, EngineInput, EngineOutput};
 pub use self::network::run_tcp_server;

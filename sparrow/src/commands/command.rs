@@ -20,15 +20,19 @@ pub trait Command: Send {
   fn execute(&self, sparrow_engine: &mut Engine) -> Option<Egg>;
 }
 
-pub fn parse_command(input: &str) -> Result<Box<dyn Command + Send>> {
+pub fn parse_command(input: &str) -> Result<Option<Box<dyn Command + Send>>> {
   let inputs = input.split(' ').collect::<Vec<&str>>();
   match inputs.get(0) {
-    Some(name) => match *name {
-      "GET" => Ok(Box::new(GetCommand::new("test"))),
-      "INSERT" => Ok(Box::new(InsertCommand::new("test", "test"))),
-      "POP" => Ok(Box::new(PopCommand::new("test"))),
-      unknown => Err(format!("Command not found: {}", unknown).into()),
-    },
+    Some(name) => {
+      let args = &inputs[1..];
+      match *name {
+        "GET" => Ok(Some(Box::new(GetCommand::new(args)?))),
+        "INSERT" => Ok(Some(Box::new(InsertCommand::new(args)?))),
+        "POP" => Ok(Some(Box::new(PopCommand::new(args)?))),
+        "EXIT" => Ok(None),
+        unknown => Err(format!("Command not found: {}", unknown).into()),
+      }
+    }
     None => Err("Command not parsable: Input string not space-separated".into()),
   }
 }

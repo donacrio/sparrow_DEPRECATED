@@ -13,6 +13,7 @@
 // limitations under the License.
 use super::command::Command;
 use crate::core::{Egg, Engine};
+use crate::errors::Result;
 
 #[derive(Clone)]
 pub struct InsertCommand {
@@ -21,10 +22,23 @@ pub struct InsertCommand {
 }
 
 impl InsertCommand {
-  pub fn new(key: &str, value: &str) -> InsertCommand {
-    InsertCommand {
-      key: key.to_string(),
-      value: value.to_string(),
+  pub fn new(args: &[&str]) -> Result<InsertCommand> {
+    match args.len() {
+      2 => {
+        let key = args.get(0).unwrap();
+        let value = args.get(1).unwrap();
+        Ok(InsertCommand {
+          key: key.to_string(),
+          value: value.to_string(),
+        })
+      }
+      n => Err(
+        format!(
+          "Cannot parse INSERT command arguments: Wrong number of arguments. Expected 2, got {}.",
+          n
+        )
+        .into(),
+      ),
     }
   }
 }

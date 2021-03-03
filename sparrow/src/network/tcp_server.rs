@@ -144,16 +144,19 @@ fn handle_client_event(
       // Read data from connection
       let connection_alive = match read_connection(&mut connection) {
         // Process information from connection read
-        Ok((connection_alive, data)) => {
+        Ok((mut connection_alive, data)) => {
           // Data has been read, a command is sent to the engine
           if let Some(string_command) = data {
             match send_command(&event.token(), string_command, sender) {
               // Command sent to the engine, reregister the connection to be WRITABLE
-              Ok(_) => poll.lock().unwrap().registry().reregister(
-                connection,
-                event.token(),
-                Interest::READABLE.add(Interest::WRITABLE),
-              )?,
+              Ok(keep_connection_alive) => {
+                poll.lock().unwrap().registry().reregister(
+                  connection,
+                  event.token(),
+                  Interest::READABLE.add(Interest::WRITABLE),
+                )?;
+                connection_alive = keep_connection_alive;
+              }
               // Error while sending command, write the error to the client
               Err(err) => {
                 println!("{}", err);
@@ -220,11 +223,15 @@ fn read_connection(connection: &mut TcpStream) -> Result<(bool, Option<Vec<u8>>)
   Ok((true, None))
 }
 
-fn send_command(token: &Token, data: Vec<u8>, sender: &mpsc::Sender<EngineInput>) -> Result<()> {
+fn send_command(token: &Token, data: Vec<u8>, sender: &mpsc::Sender<EngineInput>) -> Result<bool> {
   let data = std::str::from_utf8(&data)?;
-  let command = parse_command(data.trim_end())?;
-  sender.send(EngineInput::new(token.0, command))?;
-  Ok(())
+  match parse_command(data.trim_end())? {
+    Some(command) => {
+      sender.send(EngineInput::new(token.0, command))?;
+      Ok(true)
+    }
+    None => Ok(false),
+  }
 }
 
 fn handle_engine_outcomes(
