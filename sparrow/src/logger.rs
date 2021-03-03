@@ -11,13 +11,25 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-mod core;
-mod errors;
-mod network;
-mod utils;
 
-pub mod commands;
-pub mod logger;
+use std::io::Write;
 
-pub use self::core::{run_engine, Engine, EngineInput, EngineOutput};
-pub use self::network::run_tcp_server;
+pub fn init() {
+  let env = env_logger::Env::default()
+    .filter_or("LOG_LEVEL", "debug")
+    .write_style_or("LOG_STYLE", "always");
+
+  env_logger::Builder::from_env(env)
+    .format(|buf, record| {
+      let timestamp = buf.timestamp_millis();
+      writeln!(
+        buf,
+        "[{}][{}][{}] {}",
+        timestamp,
+        record.target(),
+        record.level(),
+        record.args()
+      )
+    })
+    .init()
+}

@@ -22,8 +22,13 @@ use mio::{Events, Interest, Poll, Token};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::Shutdown;
+use std::net::SocketAddr;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
+
+// TODO; change this to avoid in-script logging config
+// Backspace character used to format logging
+const BACKSPACE_CHARACTER: &str = "\x08";
 
 // Setup reserved server token to identify which events are for the TCP server socket
 const SERVER: Token = Token(0);
@@ -45,9 +50,9 @@ pub fn run_tcp_server(
   // Map of `Token` -> `TcpStream`.
   // TODO: Create struct to use message passing instead
   let poll = Arc::new(Mutex::new(poll));
-  let connections = Arc::new(Mutex::new(HashMap::<Token, TcpStream>::new()));
+  let connections = Arc::new(Mutex::new(HashMap::<Token, (TcpStream, SocketAddr)>::new()));
 
-  println!("Server ready to accept connections on at {}", address);
+  log::info!("Server ready to accept connections on at {}", address);
 
   // take_hook() returns the default hook in case when a custom one is not set
   let orig_hook = std::panic::take_hook();
@@ -80,7 +85,7 @@ pub fn run_tcp_server(
 fn handle_incoming_connections(
   poll: &Arc<Mutex<Poll>>,
   server: TcpListener,
-  connections: &Arc<Mutex<HashMap<Token, TcpStream>>>,
+  connections: &Arc<Mutex<HashMap<Token, (TcpStream, SocketAddr)>>>,
   sender: &mpsc::Sender<EngineInput>,
 ) -> Result<()> {
   // Unique token to identify each incoming connection
@@ -106,7 +111,7 @@ fn handle_server_event(
   server: &TcpListener,
   poll: &Arc<Mutex<Poll>>,
   unique_token: &mut Token,
-  connections: &Arc<Mutex<HashMap<Token, TcpStream>>>,
+  connections: &Arc<Mutex<HashMap<Token, (TcpStream, SocketAddr)>>>,
 ) -> Result<()> {
   loop {
     // An event is received for the TCP server socket, which indicates we can accept a connection.
@@ -117,7 +122,7 @@ fn handle_server_event(
       Err(err) => return Err(err.into()),
     };
 
-    println!("Accepted connection from: {}", address);
+    log::info!("{}[{}] Connection accepted", BACKSPACE_CHARACTER, address);
     // Create a new unique token
     let token = utils::mio::next_token(unique_token);
     {
@@ -130,7 +135,10 @@ fn handle_server_event(
     }
     {
       // Insert the new connection into the connections map
-      connections.lock().unwrap().insert(token, connection);
+      connections
+        .lock()
+        .unwrap()
+        .insert(token, (connection, address));
     }
   }
 }
@@ -138,15 +146,15 @@ fn handle_server_event(
 fn handle_client_event(
   event: &Event,
   poll: &Arc<Mutex<Poll>>,
-  connections: &Arc<Mutex<HashMap<Token, TcpStream>>>,
+  connections: &Arc<Mutex<HashMap<Token, (TcpStream, SocketAddr)>>>,
   sender: &mpsc::Sender<EngineInput>,
 ) -> Result<()> {
+  let mut connection_alive = true;
   //Event is received for an accepted TCP connection
-  if event.is_readable() {
-    let mut connection_alive = true;
-    // Read data from connection
-    if let Some(mut connection) = connections.lock().unwrap().get_mut(&event.token()) {
-      connection_alive = match read_connection(&mut connection) {
+  if let Some((connection, address)) = connections.lock().unwrap().get_mut(&event.token()) {
+    if event.is_readable() {
+      // Read data from connection
+      connection_alive = match read_connection(connection) {
         // Process information from connection read
         Ok((mut connection_alive, data)) => {
           // Data has been read, a command is sent to the engine
@@ -163,7 +171,7 @@ fn handle_client_event(
               }
               // Error while sending command, write the error to the client
               Err(err) => {
-                println!("{}", err);
+                log::error!("{}[{}] {}", BACKSPACE_CHARACTER, address, err);
                 match connection.write_all(format!("{}", err).as_bytes()) {
                   Ok(_) => {}
                   Err(ref err)
@@ -178,22 +186,27 @@ fn handle_client_event(
         }
         // Error occurred while reading, connection is kept alive
         Err(err) => {
-          println!("{}", err);
+          log::error!("{}[{}] {}", BACKSPACE_CHARACTER, address, err);
           true
         }
       };
     }
-    // Connection not alive
-    if !connection_alive {
-      println!("Closing client connection");
-      if let Some(mut connection) = connections.lock().unwrap().remove(&event.token()) {
-        connection.shutdown(Shutdown::Both)?;
-        poll
-          .lock()
-          .unwrap()
-          .registry()
-          .deregister(&mut connection)?;
-      }
+  }
+  // Connection not alive
+  if !connection_alive {
+    if let Some((mut connection, address)) = connections.lock().unwrap().remove(&event.token()) {
+      log::info!(
+        "{}[{}] Closing client connection",
+        BACKSPACE_CHARACTER,
+        address
+      );
+      connection.shutdown(Shutdown::Both)?;
+      poll
+        .lock()
+        .unwrap()
+        .registry()
+        .deregister(&mut connection)?;
+      log::info!("{}[{}] Connection closed", BACKSPACE_CHARACTER, address);
     }
   };
   Ok(())
@@ -247,13 +260,13 @@ fn send_command(token: &Token, data: Vec<u8>, sender: &mpsc::Sender<EngineInput>
 
 fn handle_engine_outcomes(
   poll: &Arc<Mutex<Poll>>,
-  connections: &Arc<Mutex<HashMap<Token, TcpStream>>>,
+  connections: &Arc<Mutex<HashMap<Token, (TcpStream, SocketAddr)>>>,
   receiver: &mpsc::Receiver<EngineOutput>,
 ) -> Result<()> {
   loop {
     let output = receiver.recv()?;
     let token = Token(output.id());
-    if let Some(connection) = connections.lock().unwrap().get_mut(&token) {
+    if let Some((connection, _)) = connections.lock().unwrap().get_mut(&token) {
       let data = format!("{:?}\n", output.content());
       match connection.write_all(data.as_bytes()) {
         Ok(_) => {
