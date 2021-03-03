@@ -18,4 +18,4 @@ mod message;
 mod nest;
 
 pub use egg::Egg;
-pub use engine::{Engine, EngineInput, EngineOutput};
+pub use engine::{run_engine, Engine, EngineInput, EngineOutput};
