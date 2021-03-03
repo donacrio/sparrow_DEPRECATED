@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 mod core;
+mod errors;
 mod network;
 mod utils;
 
 pub mod commands;
-pub mod errors;
 
 pub use self::core::{Engine, EngineInput, EngineOutput};
 pub use self::network::run_tcp_server;
