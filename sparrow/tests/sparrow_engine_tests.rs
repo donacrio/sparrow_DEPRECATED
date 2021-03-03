@@ -27,7 +27,7 @@ fn test_sparrow_engine() {
   let (sender, receiver) = sparrow_engine.init();
 
   // Run the engine in a separate thread
-  std::thread::spawn(move || sparrow_engine.run());
+  std::thread::spawn(move || sparrow_engine.run().unwrap());
 
   // Create then insert new commands in the input queue
   let input_command = InsertCommand::new(TEST_KEY, TEST_VALUE);

@@ -14,7 +14,7 @@
 
 use super::{GetCommand, InsertCommand, PopCommand};
 use crate::core::{Egg, Engine};
-use crate::errors::{CommandNotFoundError, CommandNotParsableError, Result, SparrowError};
+use crate::errors::Result;
 
 pub trait Command: Send {
   fn execute(&self, sparrow_engine: &mut Engine) -> Option<Egg>;
@@ -27,12 +27,10 @@ pub fn parse_command(input: &str) -> Result<Box<dyn Command + Send>> {
       "GET" => Ok(Box::new(GetCommand::new("test"))),
       "INSERT" => Ok(Box::new(InsertCommand::new("test", "test"))),
       "POP" => Ok(Box::new(PopCommand::new("test"))),
-      unknown => Err(SparrowError::CommandNotFound(CommandNotFoundError::new(
-        unknown,
-      ))),
+      unknown => Err(format!("Command not found: {}", unknown))?,
     },
-    None => Err(SparrowError::CommandNotParsable(
-      CommandNotParsableError::new(input),
-    )),
+    None => Err(format!(
+      "Command not parsable: Input string not space-separated"
+    ))?,
   }
 }

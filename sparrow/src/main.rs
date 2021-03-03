@@ -11,31 +11,23 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-use sparrow::errors::Result;
 use sparrow::{run_tcp_server, Engine};
 
 // use sparrow::{Result, SparrowEngine, SparrowNetworkInterface};
 const ADDRESS: &str = "127.0.0.1:8080";
 
-fn main() -> Result<()> {
+fn main() {
   // Create a new engine
   let mut sparrow_engine = Engine::new();
   let (sender, receiver) = sparrow_engine.init();
   // Run the engine
   // TODO: run it in a different thread
-  let sparrow_engine_thread = std::thread::spawn(move || -> Result<()> {
-    sparrow_engine.run()?;
-    Ok(())
-  });
+  let sparrow_engine_thread = std::thread::spawn(move || sparrow_engine.run().unwrap());
 
   // Run the network interface
-  let sparrow_net_thread = std::thread::spawn(move || -> Result<()> {
-    run_tcp_server(ADDRESS, sender, receiver)?;
-    Ok(())
-  });
+  let sparrow_net_thread =
+    std::thread::spawn(move || run_tcp_server(ADDRESS, sender, receiver).unwrap());
 
-  sparrow_engine_thread.join().unwrap()?;
-  sparrow_net_thread.join().unwrap()?;
-  Ok(())
+  sparrow_engine_thread.join().unwrap();
+  sparrow_net_thread.join().unwrap();
 }

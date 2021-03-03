@@ -48,15 +48,19 @@ impl Engine {
 
   pub fn run(&mut self) -> Result<()> {
     loop {
-      // TODO: create corresponding sparrow error
-      let receiver = self.receiver.as_ref().unwrap();
-      // TODO: create corresponding sparrow error
-      let input = receiver.recv().unwrap();
+      let receiver = self
+        .receiver
+        .as_ref()
+        .ok_or("Sparrow engine is not initialized")?;
+
+      let input = receiver.recv()?;
       let command = input.content();
       let output = command.execute(self);
-      let sender = self.sender.as_ref().unwrap();
-      // TODO: create corresponding sparrow error
-      sender.send(EngineOutput::new(input.id(), output)).unwrap();
+      let sender = self
+        .sender
+        .as_ref()
+        .ok_or("Sparrow engine is not initialized")?;
+      sender.send(EngineOutput::new(input.id(), output))?;
     }
   }
 }

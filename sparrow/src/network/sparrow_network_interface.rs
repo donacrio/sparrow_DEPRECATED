@@ -14,7 +14,7 @@
 
 use crate::commands::parse_command;
 use crate::core::{EngineInput, EngineOutput};
-use crate::errors::{CommandNotParsableError, Result, SparrowError};
+use crate::errors::Result;
 use crate::utils;
 use mio::event::Event;
 use mio::net::{TcpListener, TcpStream};
@@ -35,7 +35,7 @@ pub fn run_tcp_server(
   // Create a poll instance.
   let poll = Poll::new()?;
   // Setup the TCP server socket.
-  let addr = address.parse().unwrap();
+  let addr = address.parse()?;
   let mut server = TcpListener::bind(addr)?;
   // Register the server with poll so we can receive events for it.
   poll
@@ -50,18 +50,18 @@ pub fn run_tcp_server(
 
   let t1_poll = poll.clone();
   let t1_connections = connections.clone();
-  let t1 = std::thread::spawn(move || -> Result<()> {
-    handle_incoming_connections(&t1_poll, server, &t1_connections, &sender)
+  let t1 = std::thread::spawn(move || {
+    handle_incoming_connections(&t1_poll, server, &t1_connections, &sender).unwrap()
   });
 
   let t2_poll = poll;
   let t2_connections = connections;
-  let t2 = std::thread::spawn(move || -> Result<()> {
-    handle_engine_outcomes(&t2_poll, &t2_connections, receiver)
+  let t2 = std::thread::spawn(move || {
+    handle_engine_outcomes(&t2_poll, &t2_connections, receiver).unwrap()
   });
 
-  t1.join().unwrap()?;
-  t2.join().unwrap()?;
+  t1.join().unwrap();
+  t2.join().unwrap();
 
   Ok(())
 }
@@ -97,7 +97,7 @@ fn handle_incoming_connections(
             Err(e) => {
               // If it was any other kind of error, something went
               // wrong and we terminate with an error.
-              return Err(SparrowError::IoError(e));
+              Err(e)?
             }
           };
 
@@ -159,7 +159,7 @@ fn handle_readable_connection_event(
       }
       Err(ref err) if utils::errors::would_block(err) => break,
       Err(ref err) if utils::errors::interrupted(err) => continue,
-      Err(err) => return Err(SparrowError::IoError(err)),
+      Err(err) => Err(err)?,
     }
   }
 
@@ -177,7 +177,7 @@ fn handle_readable_connection_event(
           Ok(_) => {}
           Err(ref err) if utils::errors::would_block(err) || utils::errors::interrupted(err) => {}
           // Other errors we'll consider fatal.
-          Err(err) => return Err(SparrowError::IoError(err)),
+          Err(err) => Err(err)?,
         }
       }
     };
@@ -196,11 +196,10 @@ fn handle_command(
   received_data: &[u8],
   sender: &mpsc::Sender<EngineInput>,
 ) -> Result<()> {
-  let str_buf = std::str::from_utf8(received_data)
-    .map_err(|err| CommandNotParsableError::new(&format!("{}", err)))?;
+  let str_buf = std::str::from_utf8(received_data)?;
   let command = parse_command(str_buf.trim_end())?;
   //TODO: handle this error
-  sender.send(EngineInput::new(token.0, command)).unwrap();
+  sender.send(EngineInput::new(token.0, command))?;
   Ok(())
 }
 
@@ -210,7 +209,7 @@ fn handle_engine_outcomes(
   receiver: mpsc::Receiver<EngineOutput>,
 ) -> Result<()> {
   loop {
-    let output = receiver.recv().unwrap();
+    let output = receiver.recv()?;
     let token = Token(output.id());
     if let Some(connection) = connections.lock().unwrap().get_mut(&token) {
       let data = format!("{:?}\n", output.content());
@@ -227,7 +226,7 @@ fn handle_engine_outcomes(
         }
         Err(ref err) if utils::errors::would_block(err) || utils::errors::interrupted(err) => {}
         // Other errors we'll consider fatal.
-        Err(err) => return Err(SparrowError::IoError(err)),
+        Err(err) => Err(err)?,
       }
     }
   }
