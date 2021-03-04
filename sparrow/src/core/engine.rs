@@ -17,6 +17,7 @@ use super::message::Message;
 use super::nest::Nest;
 use crate::commands::Command;
 use crate::errors::Result;
+use crate::logger::BACKSPACE_CHARACTER;
 use std::sync::mpsc;
 
 // TODO: refactor this for generic immutable struct
@@ -47,17 +48,23 @@ impl Default for Engine {
 
 impl Engine {
   pub fn init(&mut self) -> (mpsc::Sender<EngineInput>, mpsc::Receiver<EngineOutput>) {
+    log::trace!("Initializing engine");
+    log::trace!("Creating engine input and output mpsc channels");
     let (input_sender, input_receiver) = mpsc::channel::<EngineInput>();
     let (output_sender, output_receiver) = mpsc::channel::<EngineOutput>();
+    log::trace!("Created engine channels");
     self.receiver = Some(input_receiver);
     self.sender = Some(output_sender);
+    log::trace!("Engine initialized");
     (input_sender, output_receiver)
   }
 
   pub fn process(&mut self, input: EngineInput) -> EngineOutput {
     let id = input.id();
     let command = input.content();
+    log::info!("{}[{}] {}", BACKSPACE_CHARACTER, id, command);
     let output = command.execute(self);
+    log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, id, output);
     EngineOutput::new(id, output)
   }
 }
@@ -80,15 +87,22 @@ pub fn run_engine(mut engine: Engine) -> Result<()> {
       .receiver
       .as_ref()
       .ok_or("Sparrow engine is not initialized")?;
+
+    log::trace!("Waiting for engine input");
     let input = receiver.recv()?;
+    log::trace!("Received input");
 
+    log::trace!("Processing input");
     let output = engine.process(input);
+    log::trace!("Input processed");
 
+    log::trace!("Sending output");
     let sender = engine
       .sender
       .as_ref()
       .ok_or("Sparrow engine is not initialized")?;
     sender.send(output)?;
+    log::trace!("Output sent");
   }
 }
 

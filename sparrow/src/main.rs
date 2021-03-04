@@ -29,15 +29,20 @@ fn main() {
   }));
 
   // Create a new engine
+  log::info!("Setting up engine");
   let mut engine = Engine::new();
   let (sender, receiver) = engine.init();
+  log::trace!("Engine set up");
 
   // Run the engine
+  log::info!("Starting engine thread");
   let t1 = std::thread::spawn(move || run_engine(engine).unwrap());
 
   // Run the TCP server
+  log::info!("Starting TCP server thread");
   let t2 = std::thread::spawn(move || run_tcp_server(ADDRESS, sender, receiver).unwrap());
 
   t1.join().unwrap();
   t2.join().unwrap();
+  log::info!("Joined threads");
 }

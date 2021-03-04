@@ -15,6 +15,7 @@
 use crate::commands::parse_command;
 use crate::core::{EngineInput, EngineOutput};
 use crate::errors::Result;
+use crate::logger::BACKSPACE_CHARACTER;
 use crate::utils;
 use mio::event::Event;
 use mio::net::{TcpListener, TcpStream};
@@ -25,10 +26,6 @@ use std::net::Shutdown;
 use std::net::SocketAddr;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
-
-// TODO; change this to avoid in-script logging config
-// Backspace character used to format logging
-const BACKSPACE_CHARACTER: &str = "\x08";
 
 // Setup reserved server token to identify which events are for the TCP server socket
 const SERVER: Token = Token(0);
@@ -122,7 +119,6 @@ fn handle_server_event(
       Err(err) => return Err(err.into()),
     };
 
-    log::info!("{}[{}] Connection accepted", BACKSPACE_CHARACTER, address);
     // Create a new unique token
     let token = utils::mio::next_token(unique_token);
     {
@@ -140,7 +136,7 @@ fn handle_server_event(
         .unwrap()
         .insert(token, (connection, address));
     }
-    log::info!("{}[{}] Connection registered", BACKSPACE_CHARACTER, address);
+    log::info!("{}[{}] Connection accepted", BACKSPACE_CHARACTER, address);
   }
 }
 
@@ -274,11 +270,11 @@ fn send_command(
   log::trace!("{}[{}] Parsed command", BACKSPACE_CHARACTER, address);
   match command {
     Some(command) => {
-      log::info!("{}[{}] {}", BACKSPACE_CHARACTER, address, command);
       log::trace!(
-        "{}[{}] Sending command to engine",
+        "{}[{}] Sending command to engine: {}",
         BACKSPACE_CHARACTER,
         address,
+        command
       );
       sender.send(EngineInput::new(token.0, command))?;
       log::trace!(
@@ -288,10 +284,7 @@ fn send_command(
       );
       Ok(true)
     }
-    None => {
-      log::info!("{}[{}] EXIT", BACKSPACE_CHARACTER, address);
-      Ok(false)
-    }
+    None => Ok(false),
   }
 }
 
@@ -307,22 +300,15 @@ fn handle_engine_outcomes(
     let token = Token(output.id());
     if let Some((connection, address)) = connections.lock().unwrap().get_mut(&token) {
       let data = format!("{:?}", output.content());
-      match output.content() {
-        Some(content) => log::info!("{}[{}] {}", BACKSPACE_CHARACTER, address, content),
-        None => log::info!("{}[{}] None", BACKSPACE_CHARACTER, address),
-      }
       log::trace!(
-        "{}[{}] Writing output to client socket",
+        "{}[{}] Writing output to client socket: {:?}",
         BACKSPACE_CHARACTER,
-        address
+        address,
+        output.content()
       );
       match connection.write_all(data.as_bytes()) {
         Ok(_) => {
-          log::trace!(
-            "{}[{}] Wrote output to client socket",
-            BACKSPACE_CHARACTER,
-            address
-          );
+          log::trace!("{}[{}] Output wrote", BACKSPACE_CHARACTER, address);
           poll
             .lock()
             .unwrap()

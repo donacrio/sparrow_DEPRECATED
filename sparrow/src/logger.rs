@@ -14,6 +14,9 @@
 
 use std::io::Write;
 
+// Backspace character used to format logging
+pub const BACKSPACE_CHARACTER: &str = "\x08";
+
 pub fn init() {
   let env = env_logger::Env::default()
     .filter_or("LOG_LEVEL", "debug")
