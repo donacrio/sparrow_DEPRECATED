@@ -15,8 +15,9 @@
 use super::{GetCommand, InsertCommand, PopCommand};
 use crate::core::{Egg, Engine};
 use crate::errors::Result;
+use std::fmt::Display;
 
-pub trait Command: Send {
+pub trait Command: Send + Display {
   fn execute(&self, sparrow_engine: &mut Engine) -> Option<Egg>;
 }
 

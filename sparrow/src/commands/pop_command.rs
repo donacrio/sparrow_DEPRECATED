@@ -14,6 +14,7 @@
 use super::command::Command;
 use crate::core::{Egg, Engine};
 use crate::errors::Result;
+use std::fmt;
 
 #[derive(Clone)]
 pub struct PopCommand {
@@ -37,6 +38,12 @@ impl PopCommand {
         .into(),
       ),
     }
+  }
+}
+
+impl fmt::Display for PopCommand {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "POP {}", self.key)
   }
 }
 

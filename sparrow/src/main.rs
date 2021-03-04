@@ -11,12 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use sparrow::{run_engine, run_tcp_server, Engine};
 
+use sparrow::logger;
+use sparrow::{run_engine, run_tcp_server, Engine};
 // use sparrow::{Result, SparrowEngine, SparrowNetworkInterface};
 const ADDRESS: &str = "127.0.0.1:8080";
 
 fn main() {
+  logger::init();
+
   // take_hook() returns the default hook in case when a custom one is not set
   let orig_hook = std::panic::take_hook();
   std::panic::set_hook(Box::new(move |panic_info| {
@@ -26,15 +29,20 @@ fn main() {
   }));
 
   // Create a new engine
+  log::info!("Setting up engine");
   let mut engine = Engine::new();
   let (sender, receiver) = engine.init();
+  log::trace!("Engine set up");
 
   // Run the engine
+  log::info!("Starting engine thread");
   let t1 = std::thread::spawn(move || run_engine(engine).unwrap());
 
   // Run the TCP server
+  log::info!("Starting TCP server thread");
   let t2 = std::thread::spawn(move || run_tcp_server(ADDRESS, sender, receiver).unwrap());
 
   t1.join().unwrap();
   t2.join().unwrap();
+  log::info!("Joined threads");
 }

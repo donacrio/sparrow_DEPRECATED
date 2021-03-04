@@ -14,6 +14,7 @@
 use super::command::Command;
 use crate::core::{Egg, Engine};
 use crate::errors::Result;
+use std::fmt;
 
 #[derive(Clone)]
 pub struct InsertCommand {
@@ -40,6 +41,12 @@ impl InsertCommand {
         .into(),
       ),
     }
+  }
+}
+
+impl fmt::Display for InsertCommand {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "INSERT {} {}", self.key, self.value)
   }
 }
 

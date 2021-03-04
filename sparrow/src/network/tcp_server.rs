@@ -15,6 +15,7 @@
 use crate::commands::parse_command;
 use crate::core::{EngineInput, EngineOutput};
 use crate::errors::Result;
+use crate::logger::BACKSPACE_CHARACTER;
 use crate::utils;
 use mio::event::Event;
 use mio::net::{TcpListener, TcpStream};
@@ -22,6 +23,7 @@ use mio::{Events, Interest, Poll, Token};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::Shutdown;
+use std::net::SocketAddr;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
@@ -45,9 +47,9 @@ pub fn run_tcp_server(
   // Map of `Token` -> `TcpStream`.
   // TODO: Create struct to use message passing instead
   let poll = Arc::new(Mutex::new(poll));
-  let connections = Arc::new(Mutex::new(HashMap::<Token, TcpStream>::new()));
+  let connections = Arc::new(Mutex::new(HashMap::<Token, (TcpStream, SocketAddr)>::new()));
 
-  println!("Server ready to accept connections on at {}", address);
+  log::info!("Server ready to accept connections on at {}", address);
 
   // take_hook() returns the default hook in case when a custom one is not set
   let orig_hook = std::panic::take_hook();
@@ -61,7 +63,7 @@ pub fn run_tcp_server(
   let t1_connections = connections.clone();
   let t1 = std::thread::spawn(move || {
     if let Err(err) = handle_incoming_connections(&t1_poll, server, &t1_connections, &sender) {
-      println!("{}", err);
+      log::error!("{}", err);
     }
   });
 
@@ -80,7 +82,7 @@ pub fn run_tcp_server(
 fn handle_incoming_connections(
   poll: &Arc<Mutex<Poll>>,
   server: TcpListener,
-  connections: &Arc<Mutex<HashMap<Token, TcpStream>>>,
+  connections: &Arc<Mutex<HashMap<Token, (TcpStream, SocketAddr)>>>,
   sender: &mpsc::Sender<EngineInput>,
 ) -> Result<()> {
   // Unique token to identify each incoming connection
@@ -106,7 +108,7 @@ fn handle_server_event(
   server: &TcpListener,
   poll: &Arc<Mutex<Poll>>,
   unique_token: &mut Token,
-  connections: &Arc<Mutex<HashMap<Token, TcpStream>>>,
+  connections: &Arc<Mutex<HashMap<Token, (TcpStream, SocketAddr)>>>,
 ) -> Result<()> {
   loop {
     // An event is received for the TCP server socket, which indicates we can accept a connection.
@@ -117,7 +119,6 @@ fn handle_server_event(
       Err(err) => return Err(err.into()),
     };
 
-    println!("Accepted connection from: {}", address);
     // Create a new unique token
     let token = utils::mio::next_token(unique_token);
     {
@@ -130,28 +131,32 @@ fn handle_server_event(
     }
     {
       // Insert the new connection into the connections map
-      connections.lock().unwrap().insert(token, connection);
+      connections
+        .lock()
+        .unwrap()
+        .insert(token, (connection, address));
     }
+    log::info!("{}[{}] Connection accepted", BACKSPACE_CHARACTER, address);
   }
 }
 
 fn handle_client_event(
   event: &Event,
   poll: &Arc<Mutex<Poll>>,
-  connections: &Arc<Mutex<HashMap<Token, TcpStream>>>,
+  connections: &Arc<Mutex<HashMap<Token, (TcpStream, SocketAddr)>>>,
   sender: &mpsc::Sender<EngineInput>,
 ) -> Result<()> {
+  let mut connection_alive = true;
   //Event is received for an accepted TCP connection
-  if event.is_readable() {
-    let mut connection_alive = true;
-    // Read data from connection
-    if let Some(mut connection) = connections.lock().unwrap().get_mut(&event.token()) {
-      connection_alive = match read_connection(&mut connection) {
+  if let Some((connection, address)) = connections.lock().unwrap().get_mut(&event.token()) {
+    if event.is_readable() {
+      // Read data from connection
+      connection_alive = match read_connection(connection, address) {
         // Process information from connection read
         Ok((mut connection_alive, data)) => {
           // Data has been read, a command is sent to the engine
           if let Some(string_command) = data {
-            match send_command(&event.token(), string_command, sender) {
+            match send_command(&event.token(), string_command, sender, address) {
               // Command sent to the engine, reregister the connection to be WRITABLE
               Ok(keep_connection_alive) => {
                 poll.lock().unwrap().registry().reregister(
@@ -163,7 +168,7 @@ fn handle_client_event(
               }
               // Error while sending command, write the error to the client
               Err(err) => {
-                println!("{}", err);
+                log::error!("{}[{}] {}", BACKSPACE_CHARACTER, address, err);
                 match connection.write_all(format!("{}", err).as_bytes()) {
                   Ok(_) => {}
                   Err(ref err)
@@ -178,31 +183,44 @@ fn handle_client_event(
         }
         // Error occurred while reading, connection is kept alive
         Err(err) => {
-          println!("{}", err);
+          log::error!("{}[{}] {}", BACKSPACE_CHARACTER, address, err);
           true
         }
       };
     }
-    // Connection not alive
-    if !connection_alive {
-      println!("Closing client connection");
-      if let Some(mut connection) = connections.lock().unwrap().remove(&event.token()) {
-        connection.shutdown(Shutdown::Both)?;
-        poll
-          .lock()
-          .unwrap()
-          .registry()
-          .deregister(&mut connection)?;
-      }
+  }
+  // Connection not alive
+  if !connection_alive {
+    if let Some((mut connection, address)) = connections.lock().unwrap().remove(&event.token()) {
+      log::info!(
+        "{}[{}] Closing client socket connection",
+        BACKSPACE_CHARACTER,
+        address
+      );
+      connection.shutdown(Shutdown::Both)?;
+      poll
+        .lock()
+        .unwrap()
+        .registry()
+        .deregister(&mut connection)?;
+      log::info!("{}[{}] Connection closed", BACKSPACE_CHARACTER, address);
     }
   };
   Ok(())
 }
 
-fn read_connection(connection: &mut TcpStream) -> Result<(bool, Option<Vec<u8>>)> {
+fn read_connection(
+  connection: &mut TcpStream,
+  address: &SocketAddr,
+) -> Result<(bool, Option<Vec<u8>>)> {
   let mut connection_alive = true;
   let mut received_data = vec![0; 4096];
   let mut bytes_read = 0;
+  log::trace!(
+    "{}[{}] Reading data from client socket",
+    BACKSPACE_CHARACTER,
+    address
+  );
   loop {
     match connection.read(&mut received_data[bytes_read..]) {
       Ok(0) => {
@@ -222,6 +240,12 @@ fn read_connection(connection: &mut TcpStream) -> Result<(bool, Option<Vec<u8>>)
     }
   }
 
+  log::trace!(
+    "{}[{}] Read {} bytes",
+    BACKSPACE_CHARACTER,
+    address,
+    bytes_read
+  );
   if bytes_read != 0 {
     let received_data = received_data[..bytes_read].to_vec();
     return Ok((true, Some(received_data)));
@@ -234,11 +258,30 @@ fn read_connection(connection: &mut TcpStream) -> Result<(bool, Option<Vec<u8>>)
   Ok((true, None))
 }
 
-fn send_command(token: &Token, data: Vec<u8>, sender: &mpsc::Sender<EngineInput>) -> Result<bool> {
+fn send_command(
+  token: &Token,
+  data: Vec<u8>,
+  sender: &mpsc::Sender<EngineInput>,
+  address: &SocketAddr,
+) -> Result<bool> {
+  log::trace!("{}[{}] Parsing command", BACKSPACE_CHARACTER, address);
   let data = std::str::from_utf8(&data)?;
-  match parse_command(data.trim_end())? {
+  let command = parse_command(data.trim_end())?;
+  log::trace!("{}[{}] Parsed command", BACKSPACE_CHARACTER, address);
+  match command {
     Some(command) => {
+      log::trace!(
+        "{}[{}] Sending command to engine: {}",
+        BACKSPACE_CHARACTER,
+        address,
+        command
+      );
       sender.send(EngineInput::new(token.0, command))?;
+      log::trace!(
+        "{}[{}] Sent command to engine",
+        BACKSPACE_CHARACTER,
+        address
+      );
       Ok(true)
     }
     None => Ok(false),
@@ -247,16 +290,25 @@ fn send_command(token: &Token, data: Vec<u8>, sender: &mpsc::Sender<EngineInput>
 
 fn handle_engine_outcomes(
   poll: &Arc<Mutex<Poll>>,
-  connections: &Arc<Mutex<HashMap<Token, TcpStream>>>,
+  connections: &Arc<Mutex<HashMap<Token, (TcpStream, SocketAddr)>>>,
   receiver: &mpsc::Receiver<EngineOutput>,
 ) -> Result<()> {
   loop {
+    log::trace!("Listening to engine outputs");
     let output = receiver.recv()?;
+    log::trace!("Received engine output");
     let token = Token(output.id());
-    if let Some(connection) = connections.lock().unwrap().get_mut(&token) {
-      let data = format!("{:?}\n", output.content());
+    if let Some((connection, address)) = connections.lock().unwrap().get_mut(&token) {
+      let data = format!("{:?}", output.content());
+      log::trace!(
+        "{}[{}] Writing output to client socket: {:?}",
+        BACKSPACE_CHARACTER,
+        address,
+        output.content()
+      );
       match connection.write_all(data.as_bytes()) {
         Ok(_) => {
+          log::trace!("{}[{}] Output wrote", BACKSPACE_CHARACTER, address);
           poll
             .lock()
             .unwrap()
