@@ -14,6 +14,7 @@
 use super::command::Command;
 use crate::core::{Egg, Engine};
 use crate::errors::Result;
+use std::fmt;
 
 #[derive(Clone)]
 pub struct GetCommand {
@@ -37,6 +38,12 @@ impl GetCommand {
         .into(),
       ),
     }
+  }
+}
+
+impl fmt::Display for GetCommand {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "GET {}", self.key)
   }
 }
 
