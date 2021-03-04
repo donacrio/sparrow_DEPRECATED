@@ -21,6 +21,7 @@ use mio::net::{TcpListener, TcpStream};
 use mio::{Events, Interest, Poll, Token};
 use std::collections::HashMap;
 use std::io::{Read, Write};
+use std::net::Shutdown;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
@@ -59,7 +60,9 @@ pub fn run_tcp_server(
   let t1_poll = poll.clone();
   let t1_connections = connections.clone();
   let t1 = std::thread::spawn(move || {
-    handle_incoming_connections(&t1_poll, server, &t1_connections, &sender).unwrap()
+    if let Err(err) = handle_incoming_connections(&t1_poll, server, &t1_connections, &sender) {
+      println!("{}", err);
+    }
   });
 
   let t2_poll = poll;
@@ -139,10 +142,11 @@ fn handle_client_event(
   sender: &mpsc::Sender<EngineInput>,
 ) -> Result<()> {
   //Event is received for an accepted TCP connection
-  if let Some(mut connection) = connections.lock().unwrap().get_mut(&event.token()) {
-    if event.is_readable() {
-      // Read data from connection
-      let connection_alive = match read_connection(&mut connection) {
+  if event.is_readable() {
+    let mut connection_alive = true;
+    // Read data from connection
+    if let Some(mut connection) = connections.lock().unwrap().get_mut(&event.token()) {
+      connection_alive = match read_connection(&mut connection) {
         // Process information from connection read
         Ok((mut connection_alive, data)) => {
           // Data has been read, a command is sent to the engine
@@ -178,10 +182,17 @@ fn handle_client_event(
           true
         }
       };
-      // Connection not alive
-      if !connection_alive {
-        println!("Connection closed");
-        connections.lock().unwrap().remove(&event.token());
+    }
+    // Connection not alive
+    if !connection_alive {
+      println!("Closing client connection");
+      if let Some(mut connection) = connections.lock().unwrap().remove(&event.token()) {
+        connection.shutdown(Shutdown::Both)?;
+        poll
+          .lock()
+          .unwrap()
+          .registry()
+          .deregister(&mut connection)?;
       }
     }
   };
