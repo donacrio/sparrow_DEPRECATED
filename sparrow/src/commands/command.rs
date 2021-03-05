@@ -15,9 +15,9 @@
 use super::{GetCommand, InsertCommand, PopCommand};
 use crate::core::{Egg, Engine};
 use crate::errors::Result;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
-pub trait Command: Send + Display {
+pub trait Command: Send + Display + Debug {
   fn execute(&self, sparrow_engine: &mut Engine) -> Option<Egg>;
 }
 
@@ -35,5 +35,37 @@ pub fn parse_command(input: &str) -> Result<Option<Box<dyn Command + Send>>> {
       }
     }
     None => Err("Command not parsable: Input string not space-separated".into()),
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::commands::parse_command;
+
+  #[test]
+  fn test_parse_command_valid() {
+    let get_cmd = parse_command("GET key").unwrap().unwrap();
+    assert_eq!(format!("{}", get_cmd), "GET key");
+
+    let insert_cmd = parse_command("INSERT key value").unwrap().unwrap();
+    assert_eq!(format!("{}", insert_cmd), "INSERT key value");
+
+    let pop_cmd = parse_command("POP key").unwrap().unwrap();
+    assert_eq!(format!("{}", pop_cmd), "POP key");
+
+    let exit_cmd = parse_command("EXIT").unwrap();
+    assert!(exit_cmd.is_none());
+  }
+
+  #[test]
+  #[should_panic(expected = "Command not found: TOTO")]
+  fn test_parse_command_unknown() {
+    parse_command("TOTO key").unwrap();
+  }
+
+  #[test]
+  #[should_panic(expected = "Command not found:")]
+  fn test_parse_command_empty() {
+    parse_command("").unwrap();
   }
 }
