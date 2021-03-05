@@ -44,8 +44,8 @@ mod tests {
   use super::*;
   use rstest::*;
 
-  const TEST_EGG_KEY: &str = "test";
-  const TEST_EGG_VALUE: &str = "This is a test value!";
+  const TEST_KEY: &str = "My key";
+  const TEST_VALUE: &str = "This is a test value!";
 
   #[test]
   fn test_new_nest() {
@@ -59,7 +59,7 @@ mod tests {
 
   #[fixture]
   fn egg() -> Egg {
-    Egg::new(TEST_EGG_KEY, TEST_EGG_VALUE)
+    Egg::new(TEST_KEY, TEST_VALUE)
   }
 
   #[test]
