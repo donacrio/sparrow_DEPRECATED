@@ -11,28 +11,29 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use super::command::Command;
-use crate::core::{Egg, Engine};
+use crate::core::commands::Command;
+use crate::core::egg::Egg;
+use crate::core::nest::Nest;
 use crate::errors::Result;
 use std::fmt;
 
 #[derive(Clone, Debug)]
-pub struct GetCommand {
+pub struct PopCommand {
   key: String,
 }
 
-impl GetCommand {
-  pub fn new(args: &[&str]) -> Result<GetCommand> {
+impl PopCommand {
+  pub fn new(args: &[&str]) -> Result<PopCommand> {
     match args.len() {
       1 => {
         let key = args.get(0).unwrap();
-        Ok(GetCommand {
+        Ok(PopCommand {
           key: key.to_string(),
         })
       }
       n => Err(
         format!(
-          "Cannot parse GET command arguments: Wrong number of arguments. Expected 1, got {}.",
+          "Cannot parse POP command arguments: Wrong number of arguments. Expected 1, got {}.",
           n
         )
         .into(),
@@ -41,68 +42,73 @@ impl GetCommand {
   }
 }
 
-impl fmt::Display for GetCommand {
+impl fmt::Display for PopCommand {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "GET {}", self.key)
+    write!(f, "POP {}", self.key)
   }
 }
 
-impl Command for GetCommand {
-  fn execute(&self, sparrow_engine: &mut Engine) -> Option<Egg> {
-    sparrow_engine.get(&self.key)
+impl Command for PopCommand {
+  fn execute(&self, nest: &mut Nest) -> Option<Egg> {
+    nest.pop(&self.key)
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::commands::{Command, GetCommand};
-  use crate::core::Engine;
+  use crate::core::commands::pop_command::PopCommand;
+  use crate::core::commands::Command;
+  use crate::core::egg::Egg;
+  use crate::core::nest::Nest;
   use rstest::*;
 
   const TEST_KEY: &str = "My key";
   const TEST_VALUE: &str = "This is a test value!";
 
   #[fixture]
-  fn engine() -> Engine {
-    Engine::new()
+  fn nest() -> Nest {
+    Nest::new()
   }
 
   #[test]
   fn test_command_new_1_args() {
     let args = &vec![TEST_KEY];
-    let command = GetCommand::new(args).unwrap();
+    let command = PopCommand::new(args).unwrap();
     assert_eq!(command.key, TEST_KEY)
   }
 
   #[test]
   #[should_panic(
-    expected = "Cannot parse GET command arguments: Wrong number of arguments. Expected 1, got 0."
+    expected = "Cannot parse POP command arguments: Wrong number of arguments. Expected 1, got 0."
   )]
   fn test_command_new_0_args() {
     let args = &vec![];
-    GetCommand::new(args).unwrap();
+    PopCommand::new(args).unwrap();
   }
 
   #[test]
   #[should_panic(
-    expected = "Cannot parse GET command arguments: Wrong number of arguments. Expected 1, got 2."
+    expected = "Cannot parse POP command arguments: Wrong number of arguments. Expected 1, got 2."
   )]
   fn test_command_new_2_args() {
     let args = &vec![TEST_KEY, TEST_VALUE];
-    GetCommand::new(args).unwrap();
+    PopCommand::new(args).unwrap();
   }
 
   #[rstest]
-  fn test_command_execute(mut engine: Engine) {
+  fn test_command_execute(mut nest: Nest) {
     let args = &vec![TEST_KEY];
-    let command = Box::new(GetCommand::new(args).unwrap());
+    let command = Box::new(PopCommand::new(args).unwrap());
 
-    let egg = command.execute(&mut engine);
+    let egg = command.execute(&mut nest);
     assert!(egg.is_none());
 
-    engine.insert(TEST_KEY, TEST_VALUE);
-    let egg = command.execute(&mut engine).unwrap();
+    nest.insert(Egg::new(TEST_KEY, TEST_VALUE));
+    let egg = command.execute(&mut nest).unwrap();
     assert_eq!(egg.key(), TEST_KEY);
     assert_eq!(egg.value(), TEST_VALUE);
+
+    let egg = nest.get(TEST_KEY);
+    assert!(egg.is_none());
   }
 }

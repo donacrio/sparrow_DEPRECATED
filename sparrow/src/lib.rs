@@ -13,11 +13,10 @@
 // limitations under the License.
 mod core;
 mod errors;
-mod network;
+mod net;
 mod utils;
 
-pub mod commands;
 pub mod logger;
 
-pub use self::core::{run_engine, Engine, EngineInput, EngineOutput};
-pub use self::network::run_tcp_server;
+pub use self::core::{run_engine, Engine};
+pub use self::net::run_tcp_server;

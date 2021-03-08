@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::commands::parse_command;
-use crate::core::{EngineInput, EngineOutput};
+use crate::core::{parse_command, EngineInput, EngineOutput};
 use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
 use crate::utils;

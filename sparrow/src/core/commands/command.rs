@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{GetCommand, InsertCommand, PopCommand};
-use crate::core::{Egg, Engine};
+use crate::core::commands::get_command::GetCommand;
+use crate::core::commands::insert_command::InsertCommand;
+use crate::core::commands::pop_command::PopCommand;
+use crate::core::egg::Egg;
+use crate::core::nest::Nest;
 use crate::errors::Result;
 use std::fmt::{Debug, Display};
 
 pub trait Command: Send + Display + Debug {
-  fn execute(&self, sparrow_engine: &mut Engine) -> Option<Egg>;
+  fn execute(&self, nest: &mut Nest) -> Option<Egg>;
 }
 
 pub fn parse_command(input: &str) -> Result<Option<Box<dyn Command + Send>>> {
@@ -40,7 +43,7 @@ pub fn parse_command(input: &str) -> Result<Option<Box<dyn Command + Send>>> {
 
 #[cfg(test)]
 mod tests {
-  use crate::commands::parse_command;
+  use crate::core::commands::parse_command;
 
   #[test]
   fn test_parse_command_valid() {
