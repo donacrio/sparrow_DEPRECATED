@@ -14,7 +14,7 @@
 
 use sparrow::logger;
 use sparrow::{run_engine, run_tcp_server, Engine};
-// use sparrow::{Result, SparrowEngine, SparrowNetworkInterface};
+
 const ADDRESS: &str = "127.0.0.1:8080";
 
 fn main() {

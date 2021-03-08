@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Network interface features
+
 use crate::core::{parse_command, EngineInput, EngineOutput};
 use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
@@ -26,7 +28,7 @@ use std::net::SocketAddr;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
-// Setup reserved server token to identify which events are for the TCP server socket
+/// Server token constant used to identify which events are for the TCP server socket
 const SERVER: Token = Token(0);
 
 pub fn run_tcp_server(

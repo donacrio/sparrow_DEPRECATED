@@ -12,4 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! Error handling utilities
+
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
