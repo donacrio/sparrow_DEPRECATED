@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::commands::parse_command;
 use crate::core::{EngineInput, EngineOutput};
 use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
+use crate::parse_engine_command;
 use crate::utils;
 use mio::event::Event;
 use mio::net::{TcpListener, TcpStream};
@@ -266,7 +266,7 @@ fn send_command(
 ) -> Result<bool> {
   log::trace!("{}[{}] Parsing command", BACKSPACE_CHARACTER, address);
   let data = std::str::from_utf8(&data)?;
-  let command = parse_command(data.trim_end())?;
+  let command = parse_engine_command(data.trim_end())?;
   log::trace!("{}[{}] Parsed command", BACKSPACE_CHARACTER, address);
   match command {
     Some(command) => {

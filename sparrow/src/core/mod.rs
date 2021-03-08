@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+mod commands;
 mod egg;
 mod engine;
 mod message;
 mod nest;
 
+pub use commands::{parse_engine_command, EngineCommand};
 pub use egg::Egg;
 pub use engine::{run_engine, Engine, EngineInput, EngineOutput};
+pub use nest::Nest;

@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use super::command::Command;
-use crate::core::{Egg, Engine};
+use crate::core::EngineCommand;
+use crate::core::{Egg, Nest};
 use crate::errors::Result;
 use std::fmt;
 
@@ -47,24 +47,24 @@ impl fmt::Display for GetCommand {
   }
 }
 
-impl Command for GetCommand {
-  fn execute(&self, sparrow_engine: &mut Engine) -> Option<Egg> {
-    sparrow_engine.get(&self.key)
+impl EngineCommand for GetCommand {
+  fn execute(&self, nest: &mut Nest) -> Option<Egg> {
+    nest.get(&self.key).map(|egg| egg.clone())
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::commands::{Command, GetCommand};
-  use crate::core::Engine;
+  use super::{EngineCommand, GetCommand};
+  use crate::core::{Egg, Nest};
   use rstest::*;
 
   const TEST_KEY: &str = "My key";
   const TEST_VALUE: &str = "This is a test value!";
 
   #[fixture]
-  fn engine() -> Engine {
-    Engine::new()
+  fn nest() -> Nest {
+    Nest::new()
   }
 
   #[test]
@@ -93,15 +93,15 @@ mod tests {
   }
 
   #[rstest]
-  fn test_command_execute(mut engine: Engine) {
+  fn test_command_execute(mut nest: Nest) {
     let args = &vec![TEST_KEY];
     let command = Box::new(GetCommand::new(args).unwrap());
 
-    let egg = command.execute(&mut engine);
+    let egg = command.execute(&mut nest);
     assert!(egg.is_none());
 
-    engine.insert(TEST_KEY, TEST_VALUE);
-    let egg = command.execute(&mut engine).unwrap();
+    nest.insert(Egg::new(TEST_KEY, TEST_VALUE));
+    let egg = command.execute(&mut nest).unwrap();
     assert_eq!(egg.key(), TEST_KEY);
     assert_eq!(egg.value(), TEST_VALUE);
   }

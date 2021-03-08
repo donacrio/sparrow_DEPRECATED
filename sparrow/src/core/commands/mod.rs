@@ -11,13 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-mod command;
+mod engine_command;
 mod get_command;
 mod insert_command;
 mod pop_command;
 
-pub use command::parse_command;
-pub use command::Command;
+pub use engine_command::{parse_engine_command, EngineCommand};
 pub use get_command::GetCommand;
 pub use insert_command::InsertCommand;
 pub use pop_command::PopCommand;

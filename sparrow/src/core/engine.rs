@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::commands::EngineCommand;
 use super::egg::Egg;
 use super::message::Message;
 use super::nest::Nest;
-use crate::commands::Command;
 use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
 use std::sync::mpsc;
 
 // TODO: refactor this for generic immutable struct
-pub type EngineInput = Message<Box<dyn Command>>;
+pub type EngineInput = Message<Box<dyn EngineCommand>>;
 pub type EngineOutput = Message<Option<Egg>>;
 
 pub struct Engine {
@@ -63,21 +63,9 @@ impl Engine {
     let id = input.id();
     let command = input.content();
     log::info!("{}[{}] {}", BACKSPACE_CHARACTER, id, command);
-    let output = command.execute(self);
+    let output = command.execute(&mut self.nest);
     log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, id, output);
     EngineOutput::new(id, output)
-  }
-}
-
-impl Engine {
-  pub fn insert(&mut self, key: &str, value: &str) -> Option<Egg> {
-    self.nest.insert(Egg::new(key, value))
-  }
-  pub fn get(&self, key: &str) -> Option<Egg> {
-    self.nest.get(key).cloned()
-  }
-  pub fn pop(&mut self, key: &str) -> Option<Egg> {
-    self.nest.pop(key)
   }
 }
 
@@ -108,8 +96,8 @@ pub fn run_engine(mut engine: Engine) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-  use crate::commands::parse_command;
   use crate::core::{run_engine, Egg, Engine, EngineInput};
+  use crate::parse_engine_command;
   use rstest::*;
 
   const TEST_KEY: &str = "key";
@@ -145,7 +133,7 @@ mod tests {
     // Send input insert to engine
     // Result should be None because there is no egg for this value
     let cmd = &format!("INSERT {} {}", TEST_KEY, TEST_VALUE);
-    let cmd = parse_command(cmd).unwrap().unwrap();
+    let cmd = parse_engine_command(cmd).unwrap().unwrap();
     sender.send(EngineInput::new(1, cmd)).unwrap();
     let output = receiver.recv().unwrap();
     assert_eq!(output.id(), 1);
@@ -154,38 +142,10 @@ mod tests {
     // Send input get to engine
     // Result should be the previously inserted egg
     let cmd = &format!("GET {}", TEST_KEY);
-    let cmd = parse_command(cmd).unwrap().unwrap();
+    let cmd = parse_engine_command(cmd).unwrap().unwrap();
     sender.send(EngineInput::new(1, cmd)).unwrap();
     let output = receiver.recv().unwrap();
     assert_eq!(output.id(), 1);
     assert_eq!(output.content().clone().unwrap(), egg);
-  }
-
-  #[rstest]
-  fn test_engine_insert(mut engine: Engine, egg: Egg) {
-    // Egg is inserted into sparrow's nest and its key wasn't found
-    assert_eq!(engine.insert(egg.key(), egg.value()), None);
-    // Egg is inserted into sparrow's nest and the egg previously associated to its key is returned
-    assert_eq!(engine.insert(egg.key(), egg.value()), Some(egg.clone()));
-  }
-
-  #[rstest]
-  fn test_engine_get(mut engine: Engine, egg: Egg) {
-    // Egg is not in sparrow's nest
-    assert_eq!(engine.get(egg.key()), None);
-    // Egg is inserted into sparrow's nest and its key wasn't found
-    assert_eq!(engine.insert(egg.key(), egg.value()), None);
-    // Egg is in sparrow's nest and its value is returned
-    assert_eq!(engine.get(egg.key()), Some(egg.clone()));
-  }
-
-  #[rstest]
-  fn test_sparrow_engine_pop(mut engine: Engine, egg: Egg) {
-    // Egg is inserted into sparrow's nest and its key wasn't found
-    assert_eq!(engine.insert(egg.key(), egg.value()), None);
-    // Egg is popped from sparrow's nest and returned
-    assert_eq!(engine.pop(egg.key()), Some(egg.clone()));
-    // Egg is not in sparrow's nest
-    assert_eq!(engine.pop(egg.key()), None);
   }
 }

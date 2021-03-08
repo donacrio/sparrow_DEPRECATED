@@ -16,8 +16,9 @@ mod errors;
 mod network;
 mod utils;
 
-pub mod commands;
 pub mod logger;
 
-pub use self::core::{run_engine, Engine, EngineInput, EngineOutput};
+pub use self::core::{
+  parse_engine_command, run_engine, Engine, EngineCommand, EngineInput, EngineOutput,
+};
 pub use self::network::run_tcp_server;

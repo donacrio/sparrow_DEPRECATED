@@ -13,15 +13,15 @@
 // limitations under the License.
 
 use super::{GetCommand, InsertCommand, PopCommand};
-use crate::core::{Egg, Engine};
+use crate::core::{Egg, Nest};
 use crate::errors::Result;
 use std::fmt::{Debug, Display};
 
-pub trait Command: Send + Display + Debug {
-  fn execute(&self, sparrow_engine: &mut Engine) -> Option<Egg>;
+pub trait EngineCommand: Send + Display + Debug {
+  fn execute(&self, nest: &mut Nest) -> Option<Egg>;
 }
 
-pub fn parse_command(input: &str) -> Result<Option<Box<dyn Command + Send>>> {
+pub fn parse_engine_command(input: &str) -> Result<Option<Box<dyn EngineCommand + Send>>> {
   let inputs = input.split(' ').collect::<Vec<&str>>();
   match inputs.get(0) {
     Some(name) => {
@@ -40,32 +40,32 @@ pub fn parse_command(input: &str) -> Result<Option<Box<dyn Command + Send>>> {
 
 #[cfg(test)]
 mod tests {
-  use crate::commands::parse_command;
+  use crate::parse_engine_command;
 
   #[test]
   fn test_parse_command_valid() {
-    let get_cmd = parse_command("GET key").unwrap().unwrap();
+    let get_cmd = parse_engine_command("GET key").unwrap().unwrap();
     assert_eq!(format!("{}", get_cmd), "GET key");
 
-    let insert_cmd = parse_command("INSERT key value").unwrap().unwrap();
+    let insert_cmd = parse_engine_command("INSERT key value").unwrap().unwrap();
     assert_eq!(format!("{}", insert_cmd), "INSERT key value");
 
-    let pop_cmd = parse_command("POP key").unwrap().unwrap();
+    let pop_cmd = parse_engine_command("POP key").unwrap().unwrap();
     assert_eq!(format!("{}", pop_cmd), "POP key");
 
-    let exit_cmd = parse_command("EXIT").unwrap();
+    let exit_cmd = parse_engine_command("EXIT").unwrap();
     assert!(exit_cmd.is_none());
   }
 
   #[test]
   #[should_panic(expected = "Command not found: TOTO")]
   fn test_parse_command_unknown() {
-    parse_command("TOTO key").unwrap();
+    parse_engine_command("TOTO key").unwrap();
   }
 
   #[test]
   #[should_panic(expected = "Command not found:")]
   fn test_parse_command_empty() {
-    parse_command("").unwrap();
+    parse_engine_command("").unwrap();
   }
 }
