@@ -18,7 +18,5 @@ mod engine;
 mod message;
 mod nest;
 
-pub use commands::{parse_engine_command, EngineCommand};
-pub use egg::Egg;
+pub use commands::parse_command;
 pub use engine::{run_engine, Engine, EngineInput, EngineOutput};
-pub use nest::Nest;

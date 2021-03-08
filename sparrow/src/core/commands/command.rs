@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{GetCommand, InsertCommand, PopCommand};
-use crate::core::{Egg, Nest};
+use crate::core::commands::get_command::GetCommand;
+use crate::core::commands::insert_command::InsertCommand;
+use crate::core::commands::pop_command::PopCommand;
+use crate::core::egg::Egg;
+use crate::core::nest::Nest;
 use crate::errors::Result;
 use std::fmt::{Debug, Display};
 
-pub trait EngineCommand: Send + Display + Debug {
+pub trait Command: Send + Display + Debug {
   fn execute(&self, nest: &mut Nest) -> Option<Egg>;
 }
 
-pub fn parse_engine_command(input: &str) -> Result<Option<Box<dyn EngineCommand + Send>>> {
+pub fn parse_command(input: &str) -> Result<Option<Box<dyn Command + Send>>> {
   let inputs = input.split(' ').collect::<Vec<&str>>();
   match inputs.get(0) {
     Some(name) => {
@@ -40,32 +43,32 @@ pub fn parse_engine_command(input: &str) -> Result<Option<Box<dyn EngineCommand 
 
 #[cfg(test)]
 mod tests {
-  use crate::parse_engine_command;
+  use crate::core::commands::parse_command;
 
   #[test]
   fn test_parse_command_valid() {
-    let get_cmd = parse_engine_command("GET key").unwrap().unwrap();
+    let get_cmd = parse_command("GET key").unwrap().unwrap();
     assert_eq!(format!("{}", get_cmd), "GET key");
 
-    let insert_cmd = parse_engine_command("INSERT key value").unwrap().unwrap();
+    let insert_cmd = parse_command("INSERT key value").unwrap().unwrap();
     assert_eq!(format!("{}", insert_cmd), "INSERT key value");
 
-    let pop_cmd = parse_engine_command("POP key").unwrap().unwrap();
+    let pop_cmd = parse_command("POP key").unwrap().unwrap();
     assert_eq!(format!("{}", pop_cmd), "POP key");
 
-    let exit_cmd = parse_engine_command("EXIT").unwrap();
+    let exit_cmd = parse_command("EXIT").unwrap();
     assert!(exit_cmd.is_none());
   }
 
   #[test]
   #[should_panic(expected = "Command not found: TOTO")]
   fn test_parse_command_unknown() {
-    parse_engine_command("TOTO key").unwrap();
+    parse_command("TOTO key").unwrap();
   }
 
   #[test]
   #[should_panic(expected = "Command not found:")]
   fn test_parse_command_empty() {
-    parse_engine_command("").unwrap();
+    parse_command("").unwrap();
   }
 }

@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::commands::EngineCommand;
-use super::egg::Egg;
 use super::message::Message;
-use super::nest::Nest;
+use crate::core::commands::Command;
+use crate::core::egg::Egg;
+use crate::core::nest::Nest;
 use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
 use std::sync::mpsc;
 
-// TODO: refactor this for generic immutable struct
-pub type EngineInput = Message<Box<dyn EngineCommand>>;
+pub type EngineInput = Message<Box<dyn Command>>;
 pub type EngineOutput = Message<Option<Egg>>;
 
 pub struct Engine {
@@ -96,8 +95,8 @@ pub fn run_engine(mut engine: Engine) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-  use crate::core::{run_engine, Egg, Engine, EngineInput};
-  use crate::parse_engine_command;
+  use crate::core::egg::Egg;
+  use crate::core::{parse_command, run_engine, Engine, EngineInput};
   use rstest::*;
 
   const TEST_KEY: &str = "key";
@@ -133,7 +132,7 @@ mod tests {
     // Send input insert to engine
     // Result should be None because there is no egg for this value
     let cmd = &format!("INSERT {} {}", TEST_KEY, TEST_VALUE);
-    let cmd = parse_engine_command(cmd).unwrap().unwrap();
+    let cmd = parse_command(cmd).unwrap().unwrap();
     sender.send(EngineInput::new(1, cmd)).unwrap();
     let output = receiver.recv().unwrap();
     assert_eq!(output.id(), 1);
@@ -142,7 +141,7 @@ mod tests {
     // Send input get to engine
     // Result should be the previously inserted egg
     let cmd = &format!("GET {}", TEST_KEY);
-    let cmd = parse_engine_command(cmd).unwrap().unwrap();
+    let cmd = parse_command(cmd).unwrap().unwrap();
     sender.send(EngineInput::new(1, cmd)).unwrap();
     let output = receiver.recv().unwrap();
     assert_eq!(output.id(), 1);

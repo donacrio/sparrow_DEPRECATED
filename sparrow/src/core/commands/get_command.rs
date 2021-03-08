@@ -11,8 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use crate::core::EngineCommand;
-use crate::core::{Egg, Nest};
+use crate::core::commands::Command;
+use crate::core::egg::Egg;
+use crate::core::nest::Nest;
 use crate::errors::Result;
 use std::fmt;
 
@@ -47,16 +48,18 @@ impl fmt::Display for GetCommand {
   }
 }
 
-impl EngineCommand for GetCommand {
+impl Command for GetCommand {
   fn execute(&self, nest: &mut Nest) -> Option<Egg> {
-    nest.get(&self.key).map(|egg| egg.clone())
+    nest.get(&self.key).cloned()
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use super::{EngineCommand, GetCommand};
-  use crate::core::{Egg, Nest};
+  use crate::core::commands::get_command::GetCommand;
+  use crate::core::commands::Command;
+  use crate::core::egg::Egg;
+  use crate::core::nest::Nest;
   use rstest::*;
 
   const TEST_KEY: &str = "My key";

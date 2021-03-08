@@ -27,6 +27,12 @@ impl Nest {
   }
 }
 
+impl Default for Nest {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl Nest {
   pub fn insert(&mut self, egg: Egg) -> Option<Egg> {
     self.map.insert(egg.key().clone(), egg)
