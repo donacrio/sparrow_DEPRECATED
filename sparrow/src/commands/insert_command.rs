@@ -16,7 +16,7 @@ use crate::core::{Egg, Engine};
 use crate::errors::Result;
 use std::fmt;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct InsertCommand {
   key: String,
   value: String,
@@ -53,5 +53,59 @@ impl fmt::Display for InsertCommand {
 impl Command for InsertCommand {
   fn execute(&self, sparrow_engine: &mut Engine) -> Option<Egg> {
     sparrow_engine.insert(&self.key, &self.value)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::commands::{Command, InsertCommand};
+  use crate::core::Engine;
+  use rstest::*;
+
+  const TEST_KEY: &str = "My key";
+  const TEST_VALUE: &str = "This is a test value!";
+
+  #[fixture]
+  fn engine() -> Engine {
+    Engine::new()
+  }
+
+  #[test]
+  fn test_command_new_2_args() {
+    let args = &vec![TEST_KEY, TEST_VALUE];
+    let command = InsertCommand::new(args).unwrap();
+    assert_eq!(command.key, TEST_KEY);
+    assert_eq!(command.value, TEST_VALUE);
+  }
+
+  #[test]
+  #[should_panic(
+    expected = "Cannot parse INSERT command arguments: Wrong number of arguments. Expected 2, got 0."
+  )]
+  fn test_command_new_0_args() {
+    let args = &vec![];
+    InsertCommand::new(args).unwrap();
+  }
+
+  #[test]
+  #[should_panic(
+    expected = "Cannot parse INSERT command arguments: Wrong number of arguments. Expected 2, got 3."
+  )]
+  fn test_command_new_3_args() {
+    let args = &vec![TEST_KEY, TEST_VALUE, TEST_VALUE];
+    InsertCommand::new(args).unwrap();
+  }
+
+  #[rstest]
+  fn test_command_execute(mut engine: Engine) {
+    let args = &vec![TEST_KEY, TEST_VALUE];
+    let command = Box::new(InsertCommand::new(args).unwrap());
+
+    let egg = command.execute(&mut engine);
+    assert!(egg.is_none());
+
+    let egg = command.execute(&mut engine).unwrap();
+    assert_eq!(egg.key(), TEST_KEY);
+    assert_eq!(egg.value(), TEST_VALUE);
   }
 }

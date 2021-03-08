@@ -108,55 +108,84 @@ pub fn run_engine(mut engine: Engine) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-  use crate::core::{Egg, Engine};
+  use crate::commands::parse_command;
+  use crate::core::{run_engine, Egg, Engine, EngineInput};
   use rstest::*;
 
-  const TEST_EGG_KEY: &str = "test";
-  const TEST_EGG_VALUE: &str = "This is a test value!";
-
-  #[test]
-  fn test_sparrow_engine_new() {
-    Engine::new();
-  }
+  const TEST_KEY: &str = "key";
+  const TEST_VALUE: &str = "value";
 
   #[fixture]
-  fn sparrow_engine() -> Engine {
+  fn engine() -> Engine {
     Engine::new()
   }
 
   #[fixture]
   fn egg() -> Egg {
-    Egg::new(TEST_EGG_KEY, TEST_EGG_VALUE)
+    Egg::new(TEST_KEY, TEST_VALUE)
+  }
+
+  #[test]
+  fn test_engine_new() {
+    Engine::new();
   }
 
   #[rstest]
-  fn test_sparrow_engine_insert(mut sparrow_engine: Engine, egg: Egg) {
+  fn test_engine_init(mut engine: Engine) {
+    engine.init();
+  }
+
+  #[rstest]
+  fn test_run_engine(mut engine: Engine, egg: Egg) {
+    let (sender, receiver) = engine.init();
+    std::thread::spawn(move || {
+      run_engine(engine).unwrap();
+    });
+
+    // Send input insert to engine
+    // Result should be None because there is no egg for this value
+    let cmd = &format!("INSERT {} {}", TEST_KEY, TEST_VALUE);
+    let cmd = parse_command(cmd).unwrap().unwrap();
+    sender.send(EngineInput::new(1, cmd)).unwrap();
+    let output = receiver.recv().unwrap();
+    assert_eq!(output.id(), 1);
+    assert!(output.content().is_none());
+
+    // Send input get to engine
+    // Result should be the previously inserted egg
+    let cmd = &format!("GET {}", TEST_KEY);
+    let cmd = parse_command(cmd).unwrap().unwrap();
+    sender.send(EngineInput::new(1, cmd)).unwrap();
+    let output = receiver.recv().unwrap();
+    assert_eq!(output.id(), 1);
+    assert_eq!(output.content().clone().unwrap(), egg);
+  }
+
+  #[rstest]
+  fn test_engine_insert(mut engine: Engine, egg: Egg) {
     // Egg is inserted into sparrow's nest and its key wasn't found
-    assert_eq!(sparrow_engine.insert(egg.key(), egg.value()), None);
+    assert_eq!(engine.insert(egg.key(), egg.value()), None);
     // Egg is inserted into sparrow's nest and the egg previously associated to its key is returned
-    assert_eq!(
-      sparrow_engine.insert(egg.key(), egg.value()),
-      Some(egg.clone())
-    );
+    assert_eq!(engine.insert(egg.key(), egg.value()), Some(egg.clone()));
   }
 
   #[rstest]
-  fn test_sparrow_engine_get(mut sparrow_engine: Engine, egg: Egg) {
+  fn test_engine_get(mut engine: Engine, egg: Egg) {
     // Egg is not in sparrow's nest
-    assert_eq!(sparrow_engine.get(egg.key()), None);
+    assert_eq!(engine.get(egg.key()), None);
     // Egg is inserted into sparrow's nest and its key wasn't found
-    assert_eq!(sparrow_engine.insert(egg.key(), egg.value()), None);
+    assert_eq!(engine.insert(egg.key(), egg.value()), None);
     // Egg is in sparrow's nest and its value is returned
-    assert_eq!(sparrow_engine.get(egg.key()), Some(egg.clone()));
+    assert_eq!(engine.get(egg.key()), Some(egg.clone()));
   }
 
   #[rstest]
-  fn test_sparrow_engine_pop(mut sparrow_engine: Engine, egg: Egg) {
+  fn test_sparrow_engine_pop(mut engine: Engine, egg: Egg) {
     // Egg is inserted into sparrow's nest and its key wasn't found
-    assert_eq!(sparrow_engine.insert(egg.key(), egg.value()), None);
+    assert_eq!(engine.insert(egg.key(), egg.value()), None);
     // Egg is popped from sparrow's nest and returned
-    assert_eq!(sparrow_engine.pop(egg.key()), Some(egg.clone()));
+    assert_eq!(engine.pop(egg.key()), Some(egg.clone()));
     // Egg is not in sparrow's nest
-    assert_eq!(sparrow_engine.pop(egg.key()), None);
+    assert_eq!(engine.pop(egg.key()), None);
   }
 }
