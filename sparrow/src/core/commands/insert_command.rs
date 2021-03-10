@@ -1,22 +1,10 @@
-// Copyright [2020] [Donatien Criaud]
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//       http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 use crate::core::commands::Command;
 use crate::core::egg::Egg;
 use crate::core::nest::Nest;
 use crate::errors::Result;
 use std::fmt;
 
+/// Engine INSERT command.
 #[derive(Clone, Debug)]
 pub struct InsertCommand {
   key: String,
@@ -24,6 +12,22 @@ pub struct InsertCommand {
 }
 
 impl InsertCommand {
+  /// Return a new [`InsertCommand`].
+  ///
+  /// # Arguments
+  /// * `args` - Arguments of this command. There should be 2 argument (key, value).
+  ///
+  /// # Examples
+  /// ```rust
+  /// use sparrow::core::commands::InsertCommand;
+  ///
+  /// let args = &vec!["my key", "some value"];
+  /// let cmd = InsertCommand::new(args).unwrap();
+  ///
+  /// assert_eq!(format!("{}", cmd), "INSERT {my key} {some value}");
+  /// ```
+  ///
+  /// [`GetCommand`]: sparrow::core::commands::get_command::GetCommand
   pub fn new(args: &[&str]) -> Result<InsertCommand> {
     match args.len() {
       2 => {
@@ -47,11 +51,14 @@ impl InsertCommand {
 
 impl fmt::Display for InsertCommand {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "INSERT {} {}", self.key, self.value)
+    write!(f, "INSERT {{{}}} {{{}}}", self.key, self.value)
   }
 }
 
 impl Command for InsertCommand {
+  /// Execute the `INSERT key value` command on a given [`Nest`].
+  ///
+  /// [`Nest`]: sparrow::core::nest::Nest
   fn execute(&self, nest: &mut Nest) -> Option<Egg> {
     nest.insert(Egg::new(&self.key, &self.value))
   }

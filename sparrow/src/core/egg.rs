@@ -1,20 +1,14 @@
-// Copyright [2020] [Donatien Criaud]
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//       http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//! Base data representation.
+
 use chrono::prelude::{DateTime, Utc};
 use std::fmt;
 use std::time::SystemTime;
 
+/// Egg is the base representation of data into Sparrow [`Nest`].
+///
+/// It stores the `key` - `value` pair along with some metadata.
+///
+/// [`Nest`]: sparrow::core::egg::Egg
 #[derive(Debug, Clone)]
 pub struct Egg {
   key: String,
@@ -23,6 +17,13 @@ pub struct Egg {
 }
 
 impl Egg {
+  /// Return a new [`Egg`].
+  ///
+  /// # Arguments
+  /// * `key` - The key to store
+  /// * `value` - The value to store
+  ///
+  /// [`Egg`]: sparrow::core::egg::Egg
   pub fn new(key: &str, value: &str) -> Egg {
     let created_at: DateTime<Utc> = SystemTime::now().into();
     Egg {
@@ -31,12 +32,15 @@ impl Egg {
       created_at,
     }
   }
+  /// Return private field `key`
   pub fn key(&self) -> &String {
     &self.key
   }
+  /// Return private field `value`
   pub fn value(&self) -> &String {
     &self.value
   }
+  /// Return private field `created_at`
   pub fn created_at(&self) -> &DateTime<Utc> {
     &self.created_at
   }

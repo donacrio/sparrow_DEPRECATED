@@ -14,7 +14,7 @@
 ///
 /// * `token` - mio unique token
 ///
-/// # Example
+/// # Examples
 /// ```rust
 /// use sparrow::utils::mio::next_token;
 ///

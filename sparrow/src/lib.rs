@@ -20,8 +20,9 @@
 //! ```
 //! **Note that this behavior is likely to be replaced in the future with async.**
 
+mod errors;
+mod utils;
+
 pub mod core;
-pub mod errors;
 pub mod logger;
 pub mod net;
-pub mod utils;
