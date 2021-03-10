@@ -1,32 +1,26 @@
-// Copyright [2020] [Donatien Criaud]
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//       http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//! Generic DTO to pass message.
 
+/// Data Transfer Object with an `id` and some `content`.
 pub struct Message<T> {
   id: usize,
   content: T,
 }
 
 impl<T> Message<T> {
+  /// Return a new [`Message`]
+  ///
+  /// [`Message`]: sparrow::core::message::Message
   pub fn new(id: usize, content: T) -> Message<T> {
     Message { id, content }
   }
 }
 
 impl<T> Message<T> {
+  /// Return private field `id`
   pub fn id(&self) -> usize {
     self.id
   }
+  /// Return private field `content`
   pub fn content(&self) -> &T {
     &self.content
   }

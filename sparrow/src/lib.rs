@@ -1,22 +1,28 @@
-// Copyright [2020] [Donatien Criaud]
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//       http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-mod core;
+//! Sparrow is a fast, low-level, lightweight in-memory database.
+//! The project is under active development and new features are shipped every week! 🥳
+//!
+//! # Usage
+//!
+//! For now Sparrow runs using two threads:
+//! - The engine is ran in one thread and executes commands received
+//! through an input consumer and sends the output using an output producer.
+//! - The TCP server is ran in another thread. It receives commands from socket connections
+//! and send them to the engine using an input producer. The outputs are retrieved using an output consumer.
+//!
+//! ```rust
+//! use sparrow::net::run_tcp_server;
+//! use sparrow::core::Engine;
+//!
+//! let mut engine = Engine::new();
+//! let (sender, receiver) = engine.init();
+//! std::thread::spawn(move || engine.run().unwrap());
+//! std::thread::spawn(move || run_tcp_server("127.0.0.1", sender, receiver).unwrap());
+//! ```
+//! **Note that this behavior is likely to be replaced in the future with async.**
+
 mod errors;
-mod net;
 mod utils;
 
+pub mod core;
 pub mod logger;
-
-pub use self::core::{run_engine, Engine};
-pub use self::net::run_tcp_server;
+pub mod net;

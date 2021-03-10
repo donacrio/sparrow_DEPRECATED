@@ -1,25 +1,22 @@
-// Copyright [2020] [Donatien Criaud]
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//       http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//! In-memory data storage.
 
 use super::egg::Egg;
 use std::collections::HashMap;
 
+/// Nest is the in-memory data storage of Sparrow.
+///
+/// It contains an [`HashMap`] to store multiple [`Egg`] along with their key.
+///
+/// [`HashMap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
+/// [`Egg`]: sparrow::core::egg::Egg
 pub struct Nest {
   map: HashMap<String, Egg>,
 }
 
 impl Nest {
+  /// Return a new [`Nest`].
+  ///
+  /// [`Nest`]: sparrow::core::nest::Nest
   pub fn new() -> Nest {
     Nest {
       map: HashMap::new(),
@@ -34,12 +31,30 @@ impl Default for Nest {
 }
 
 impl Nest {
+  /// Insert an [`Egg`] into the `map` field
+  ///
+  /// # Arguments
+  /// * `egg` - [`Egg`] to insert
+  ///
+  /// [`Egg`]: sparrow::core::egg::Egg
   pub fn insert(&mut self, egg: Egg) -> Option<Egg> {
     self.map.insert(egg.key().clone(), egg)
   }
+  /// Get an [`Egg`] from the `map` field
+  ///
+  /// # Arguments
+  /// * `key` - Key value of the [`Egg`] to get
+  ///
+  /// [`Egg`]: sparrow::core::egg::Egg
   pub fn get(&self, key: &str) -> Option<&Egg> {
     self.map.get(key)
   }
+  /// Pop an [`Egg`] from the `map` field
+  ///
+  /// # Arguments
+  /// * `key` - Key value of the [`Egg`] to pop
+  ///
+  /// [`Egg`]: sparrow::core::egg::Egg
   pub fn pop(&mut self, key: &str) -> Option<Egg> {
     self.map.remove(key)
   }

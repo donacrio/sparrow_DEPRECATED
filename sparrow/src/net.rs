@@ -1,18 +1,7 @@
-// Copyright [2020] [Donatien Criaud]
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//       http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//! Network interface features.
 
-use crate::core::{parse_command, EngineInput, EngineOutput};
+use crate::core::commands::parse_command;
+use crate::core::{EngineInput, EngineOutput};
 use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
 use crate::utils;
@@ -26,9 +15,26 @@ use std::net::SocketAddr;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
-// Setup reserved server token to identify which events are for the TCP server socket
+/// Server token constant used to identify which events are for the TCP server socket
 const SERVER: Token = Token(0);
 
+/// Run the TCP server.
+///
+/// # Arguments
+/// * `address` - Server listening address
+/// * `sender` - [`Engine`] input producer
+/// * `receiver` - [`Engine`] output consumer
+///
+/// # Examples
+/// ```rust
+/// use sparrow::net::run_tcp_server;
+/// use sparrow::core::Engine;
+///
+/// let mut engine = Engine::new();
+/// let (sender, receiver) = engine.init();
+/// std::thread::spawn(move || engine.run().unwrap());
+/// std::thread::spawn(move || run_tcp_server("127.0.0.1", sender, receiver).unwrap());
+/// ```
 pub fn run_tcp_server(
   address: &str,
   sender: mpsc::Sender<EngineInput>,

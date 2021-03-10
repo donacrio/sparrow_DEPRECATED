@@ -1,16 +1,4 @@
-// Copyright [2020] [Donatien Criaud]
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//       http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//! Core engine managing the database.
 
 use super::message::Message;
 use crate::core::commands::Command;
@@ -20,16 +8,42 @@ use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
 use std::sync::mpsc;
 
+/// Input send to the engine through an input sender.
 pub type EngineInput = Message<Box<dyn Command>>;
+/// Output send from the engine through the output consumer.
 pub type EngineOutput = Message<Option<Egg>>;
 
+/// Engine that manages the in-memory state and database operations.
+///
+/// # Examples
+/// ```rust
+/// use sparrow::net::run_tcp_server;
+/// use sparrow::core::Engine;
+///
+/// let mut engine = Engine::new();
+/// let (sender, receiver) = engine.init();
+/// std::thread::spawn(move || engine.run().unwrap());
+/// std::thread::spawn(move || run_tcp_server("127.0.0.1", sender, receiver).unwrap());
+/// ```
 pub struct Engine {
+  /// [`Nest`] used for in-memory data storage.
+  ///
+  /// [`Nest`]: sparrow::core::nest::Nest
   nest: Nest,
+  /// [`mpsc`] consumer used to retrieve inputs for the engine.
+  ///
+  /// [`mpsc`]: https://doc.rust-lang.org/std/sync/mpsc/
   receiver: Option<mpsc::Receiver<EngineInput>>,
+  /// [`mpsc`] producer used to send outputs from the engine.
+  ///
+  /// [`mpsc`]: https://doc.rust-lang.org/std/sync/mpsc/
   sender: Option<mpsc::Sender<EngineOutput>>,
 }
 
 impl Engine {
+  /// Return a new [`Engine`].
+  ///
+  /// [`Engine`]: sparrow::core::engine::Engine
   pub fn new() -> Engine {
     Engine {
       nest: Nest::new(),
@@ -46,6 +60,10 @@ impl Default for Engine {
 }
 
 impl Engine {
+  /// Initialize the engine
+  ///
+  /// Instantiate an return the input and output producers and consumers
+  /// use to communicate with the engine through threads.
   pub fn init(&mut self) -> (mpsc::Sender<EngineInput>, mpsc::Receiver<EngineOutput>) {
     log::trace!("Initializing engine");
     log::trace!("Creating engine input and output mpsc channels");
@@ -58,7 +76,45 @@ impl Engine {
     (input_sender, output_receiver)
   }
 
-  pub fn process(&mut self, input: EngineInput) -> EngineOutput {
+  /// Run the engine.
+  ///
+  /// Loop infinitely to:
+  /// - Get the next [`EngineInput`] from the input consumer
+  /// - Process this input (i.e. execute the [`Command`] contained in the input)
+  /// - Send the [`EngineOutput`] through the output producer
+  ///
+  /// [`EngineInput`]: sparrow::core::engine::EngineInput
+  /// [`Command`]: sparrow::core::commands::command::Command
+  /// [`EngineOutput`]: sparrow::core::engine::EngineOutput
+  pub fn run(&mut self) -> Result<()> {
+    loop {
+      let receiver = self
+        .receiver
+        .as_ref()
+        .ok_or("Sparrow engine is not initialized")?;
+
+      log::trace!("Waiting for engine input");
+      let input = receiver.recv()?;
+      log::trace!("Received input");
+
+      log::trace!("Processing input");
+      let output = self.process(input);
+      log::trace!("Input processed");
+
+      log::trace!("Sending output");
+      let sender = self
+        .sender
+        .as_ref()
+        .ok_or("Sparrow engine is not initialized")?;
+      sender.send(output)?;
+      log::trace!("Output sent");
+    }
+  }
+
+  /// Process an [`EngineInput`].
+  ///
+  /// [`EngineInput`]: sparrow::core::engine::EngineInput
+  fn process(&mut self, input: EngineInput) -> EngineOutput {
     let id = input.id();
     let command = input.content();
     log::info!("{}[{}] {}", BACKSPACE_CHARACTER, id, command);
@@ -68,35 +124,11 @@ impl Engine {
   }
 }
 
-pub fn run_engine(mut engine: Engine) -> Result<()> {
-  loop {
-    let receiver = engine
-      .receiver
-      .as_ref()
-      .ok_or("Sparrow engine is not initialized")?;
-
-    log::trace!("Waiting for engine input");
-    let input = receiver.recv()?;
-    log::trace!("Received input");
-
-    log::trace!("Processing input");
-    let output = engine.process(input);
-    log::trace!("Input processed");
-
-    log::trace!("Sending output");
-    let sender = engine
-      .sender
-      .as_ref()
-      .ok_or("Sparrow engine is not initialized")?;
-    sender.send(output)?;
-    log::trace!("Output sent");
-  }
-}
-
 #[cfg(test)]
 mod tests {
+  use crate::core::commands::parse_command;
   use crate::core::egg::Egg;
-  use crate::core::{parse_command, run_engine, Engine, EngineInput};
+  use crate::core::{Engine, EngineInput};
   use rstest::*;
 
   const TEST_KEY: &str = "key";
@@ -126,7 +158,7 @@ mod tests {
   fn test_run_engine(mut engine: Engine, egg: Egg) {
     let (sender, receiver) = engine.init();
     std::thread::spawn(move || {
-      run_engine(engine).unwrap();
+      engine.run().unwrap();
     });
 
     // Send input insert to engine

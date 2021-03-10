@@ -1,28 +1,32 @@
-// Copyright [2020] [Donatien Criaud]
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//       http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 use crate::core::commands::Command;
 use crate::core::egg::Egg;
 use crate::core::nest::Nest;
 use crate::errors::Result;
 use std::fmt;
 
+/// Engine POP command.
 #[derive(Clone, Debug)]
 pub struct PopCommand {
   key: String,
 }
 
 impl PopCommand {
+  /// Return a new [`PopCommand`].
+  ///
+  /// # Arguments
+  /// * `args` - Arguments of this command. There should be 1 argument (key).
+  ///
+  /// # Examples
+  /// ```rust
+  /// use sparrow::core::commands::PopCommand;
+  ///
+  /// let args = &vec!["my key"];
+  /// let cmd = PopCommand::new(args).unwrap();
+  ///
+  /// assert_eq!(format!("{}", cmd), "POP {my key}");
+  /// ```
+  ///
+  /// [`PopCommand`]: sparrow::core::commands::get_command::PopCommand
   pub fn new(args: &[&str]) -> Result<PopCommand> {
     match args.len() {
       1 => {
@@ -44,11 +48,14 @@ impl PopCommand {
 
 impl fmt::Display for PopCommand {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "POP {}", self.key)
+    write!(f, "POP {{{}}}", self.key)
   }
 }
 
 impl Command for PopCommand {
+  /// Execute the `POP key` command on a given [`Nest`].
+  ///
+  /// [`Nest`]: sparrow::core::nest::Nest
   fn execute(&self, nest: &mut Nest) -> Option<Egg> {
     nest.pop(&self.key)
   }
