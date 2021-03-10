@@ -58,7 +58,32 @@ impl Engine {
     (input_sender, output_receiver)
   }
 
-  pub fn process(&mut self, input: EngineInput) -> EngineOutput {
+  pub fn run(&mut self) -> Result<()> {
+    loop {
+      let receiver = self
+        .receiver
+        .as_ref()
+        .ok_or("Sparrow engine is not initialized")?;
+
+      log::trace!("Waiting for engine input");
+      let input = receiver.recv()?;
+      log::trace!("Received input");
+
+      log::trace!("Processing input");
+      let output = self.process(input);
+      log::trace!("Input processed");
+
+      log::trace!("Sending output");
+      let sender = self
+        .sender
+        .as_ref()
+        .ok_or("Sparrow engine is not initialized")?;
+      sender.send(output)?;
+      log::trace!("Output sent");
+    }
+  }
+
+  fn process(&mut self, input: EngineInput) -> EngineOutput {
     let id = input.id();
     let command = input.content();
     log::info!("{}[{}] {}", BACKSPACE_CHARACTER, id, command);
@@ -68,35 +93,10 @@ impl Engine {
   }
 }
 
-pub fn run_engine(mut engine: Engine) -> Result<()> {
-  loop {
-    let receiver = engine
-      .receiver
-      .as_ref()
-      .ok_or("Sparrow engine is not initialized")?;
-
-    log::trace!("Waiting for engine input");
-    let input = receiver.recv()?;
-    log::trace!("Received input");
-
-    log::trace!("Processing input");
-    let output = engine.process(input);
-    log::trace!("Input processed");
-
-    log::trace!("Sending output");
-    let sender = engine
-      .sender
-      .as_ref()
-      .ok_or("Sparrow engine is not initialized")?;
-    sender.send(output)?;
-    log::trace!("Output sent");
-  }
-}
-
 #[cfg(test)]
 mod tests {
   use crate::core::egg::Egg;
-  use crate::core::{parse_command, run_engine, Engine, EngineInput};
+  use crate::core::{parse_command, Engine, EngineInput};
   use rstest::*;
 
   const TEST_KEY: &str = "key";
@@ -126,7 +126,7 @@ mod tests {
   fn test_run_engine(mut engine: Engine, egg: Egg) {
     let (sender, receiver) = engine.init();
     std::thread::spawn(move || {
-      run_engine(engine).unwrap();
+      engine.run().unwrap();
     });
 
     // Send input insert to engine

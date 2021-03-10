@@ -10,20 +10,18 @@
 //! and send them to the engine using a producer. The outputs are retrieved using a consumer.
 //!
 //! ```rust
+//! use sparrow::net::run_tcp_server;
+//! use sparrow::core::Engine;
+//!
 //! let mut engine = Engine::new();
 //! let (sender, receiver) = engine.init();
-//! std::thread::spawn(move || run_engine(engine).unwrap());
-//! std::thread::spawn(move || run_tcp_server(ADDRESS, sender, receiver).unwrap());
+//! std::thread::spawn(move || engine.run().unwrap());
+//! std::thread::spawn(move || run_tcp_server("127.0.0.1", sender, receiver).unwrap());
 //! ```
 //! **Note that this behavior is likely to be replaced in the future with async.**
 
-mod core;
-mod errors;
-mod net;
-mod utils;
-
+pub mod core;
+pub mod errors;
 pub mod logger;
-
-pub use self::core::run_engine;
-pub use self::core::Engine;
-pub use self::net::run_tcp_server;
+pub mod net;
+pub mod utils;

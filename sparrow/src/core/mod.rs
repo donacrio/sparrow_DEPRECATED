@@ -21,4 +21,4 @@ mod message;
 mod nest;
 
 pub use commands::parse_command;
-pub use engine::{run_engine, Engine, EngineInput, EngineOutput};
+pub use engine::{Engine, EngineInput, EngineOutput};
