@@ -13,17 +13,6 @@
 /// # Arguments
 ///
 /// * `token` - mio unique token
-///
-/// # Examples
-/// ```rust
-/// use sparrow::utils::mio::next_token;
-///
-/// let mut unique_token = mio::Token(0);
-///
-/// assert_eq!(next_token(&mut unique_token).0, 0);
-/// assert_eq!(next_token(&mut unique_token).0, 1);
-/// assert_eq!(next_token(&mut unique_token).0, 2);
-/// ```
 pub fn next_token(token: &mut mio::Token) -> mio::Token {
   let next = token.0;
   token.0 += 1;

@@ -18,6 +18,23 @@ use std::sync::{Arc, Mutex};
 /// Server token constant used to identify which events are for the TCP server socket
 const SERVER: Token = Token(0);
 
+/// Run the TCP server.
+///
+/// # Arguments
+/// * `address` - Server listening address
+/// * `sender` - [`Engine`] input producer
+/// * `receiver` - [`Engine`] output consumer
+///
+/// # Examples
+/// ```rust
+/// use sparrow::net::run_tcp_server;
+/// use sparrow::core::Engine;
+///
+/// let mut engine = Engine::new();
+/// let (sender, receiver) = engine.init();
+/// std::thread::spawn(move || engine.run().unwrap());
+/// std::thread::spawn(move || run_tcp_server("127.0.0.1", sender, receiver).unwrap());
+/// ```
 pub fn run_tcp_server(
   address: &str,
   sender: mpsc::Sender<EngineInput>,

@@ -5,9 +5,9 @@
 //!
 //! For now Sparrow runs using two threads:
 //! - The engine is ran in one thread and executes commands received
-//! through a consumer and sends the output using a producer.
+//! through an input consumer and sends the output using an output producer.
 //! - The TCP server is ran in another thread. It receives commands from socket connections
-//! and send them to the engine using a producer. The outputs are retrieved using a consumer.
+//! and send them to the engine using an input producer. The outputs are retrieved using an output consumer.
 //!
 //! ```rust
 //! use sparrow::net::run_tcp_server;
