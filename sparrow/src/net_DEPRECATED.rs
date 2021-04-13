@@ -1,0 +1,328 @@
+//! Network interface features.
+
+use crate::core::commands::parse_command;
+use crate::core::{EngineInput, EngineOutput};
+use crate::errors::Result;
+use crate::logger::BACKSPACE_CHARACTER;
+use crate::utils;
+use mio::event::Event;
+use mio::net::{TcpListener, TcpStream};
+use mio::{Events, Interest, Poll, Token};
+use std::collections::HashMap;
+use std::io::{Read, Write};
+use std::net::Shutdown;
+use std::net::SocketAddr;
+use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
+
+/// Server token constant used to identify which events are for the TCP server socket
+const SERVER: Token = Token(0);
+
+/// Run the TCP server.
+///
+/// # Arguments
+/// * `address` - Server listening address
+/// * `sender` - [`Engine`] input producer
+/// * `receiver` - [`Engine`] output consumer
+///
+/// # Examples
+/// ```rust
+/// use sparrow::net::run_tcp_server;
+/// use sparrow::core::Engine;
+///
+/// let mut engine = Engine::new();
+/// let (sender, receiver) = engine.init();
+/// std::thread::spawn(move || engine.run().unwrap());
+/// std::thread::spawn(move || run_tcp_server("127.0.0.1", sender, receiver).unwrap());
+/// ```
+pub fn run_tcp_server(
+  address: &str,
+  sender: mpsc::Sender<EngineInput>,
+  receiver: mpsc::Receiver<EngineOutput>,
+) -> Result<()> {
+  // Create a new poll instance.
+  let poll = Poll::new()?;
+  // Setup the TCP server socket.
+  let addr = address.parse()?;
+  let mut server = TcpListener::bind(addr)?;
+  // Register the server with poll so we can receive events for it.
+  poll
+    .registry()
+    .register(&mut server, SERVER, Interest::READABLE)?;
+  // Map of `Token` -> `TcpStream`.
+  // TODO: Create struct to use message passing instead
+  let poll = Arc::new(Mutex::new(poll));
+  let connections = Arc::new(Mutex::new(HashMap::<Token, (TcpStream, SocketAddr)>::new()));
+
+  log::info!("Server ready to accept connections on at {}", address);
+
+  // take_hook() returns the default hook in case when a custom one is not set
+  let orig_hook = std::panic::take_hook();
+  std::panic::set_hook(Box::new(move |panic_info| {
+    // invoke the default handler and exit the process
+    orig_hook(panic_info);
+    std::process::exit(1);
+  }));
+
+  let t1_poll = poll.clone();
+  let t1_connections = connections.clone();
+  let t1 = std::thread::spawn(move || {
+    if let Err(err) = handle_incoming_connections(&t1_poll, server, &t1_connections, &sender) {
+      log::error!("{}", err);
+    }
+  });
+
+  let t2_poll = poll;
+  let t2_connections = connections;
+  let t2 = std::thread::spawn(move || {
+    handle_engine_outcomes(&t2_poll, &t2_connections, &receiver).unwrap()
+  });
+
+  t1.join().unwrap();
+  t2.join().unwrap();
+
+  Ok(())
+}
+
+fn handle_incoming_connections(
+  poll: &Arc<Mutex<Poll>>,
+  server: TcpListener,
+  connections: &Arc<Mutex<HashMap<Token, (TcpStream, SocketAddr)>>>,
+  sender: &mpsc::Sender<EngineInput>,
+) -> Result<()> {
+  // Unique token to identify each incoming connection
+  let mut unique_token = Token(SERVER.0 + 1);
+  // Create storage for polling new events
+  let mut events = Events::with_capacity(128);
+
+  loop {
+    {
+      // Polling new events
+      poll.lock().unwrap().poll(&mut events, None)?;
+    }
+    for event in events.iter() {
+      match event.token() {
+        SERVER => handle_server_event(&server, &poll, &mut unique_token, &connections)?,
+        _ => handle_client_event(&event, &poll, &connections, &sender)?,
+      }
+    }
+  }
+}
+
+fn handle_server_event(
+  server: &TcpListener,
+  poll: &Arc<Mutex<Poll>>,
+  unique_token: &mut Token,
+  connections: &Arc<Mutex<HashMap<Token, (TcpStream, SocketAddr)>>>,
+) -> Result<()> {
+  loop {
+    // An event is received for the TCP server socket, which indicates we can accept a connection.
+    let (mut connection, address) = match server.accept() {
+      Ok((connection, address)) => (connection, address),
+      // A `WouldBlock` error means the listener has no more incoming connections
+      Err(err) if utils::errors::would_block(&err) => return Ok(()),
+      Err(err) => return Err(err.into()),
+    };
+
+    // Create a new unique token
+    let token = utils::mio::next_token(unique_token);
+    {
+      // Register the connection into the polling instance with the unique token and a READABLE interest
+      poll
+        .lock()
+        .unwrap()
+        .registry()
+        .register(&mut connection, token, Interest::READABLE)?;
+    }
+    {
+      // Insert the new connection into the connections map
+      connections
+        .lock()
+        .unwrap()
+        .insert(token, (connection, address));
+    }
+    log::info!("{}[{}] Connection accepted", BACKSPACE_CHARACTER, address);
+  }
+}
+
+fn handle_client_event(
+  event: &Event,
+  poll: &Arc<Mutex<Poll>>,
+  connections: &Arc<Mutex<HashMap<Token, (TcpStream, SocketAddr)>>>,
+  sender: &mpsc::Sender<EngineInput>,
+) -> Result<()> {
+  let mut connection_alive = true;
+  //Event is received for an accepted TCP connection
+  if let Some((connection, address)) = connections.lock().unwrap().get_mut(&event.token()) {
+    if event.is_readable() {
+      // Read data from connection
+      connection_alive = match read_connection(connection, address) {
+        // Process information from connection read
+        Ok((mut connection_alive, data)) => {
+          // Data has been read, a command is sent to the engine
+          if let Some(string_command) = data {
+            match send_command(&event.token(), string_command, sender, address) {
+              // Command sent to the engine, reregister the connection to be WRITABLE
+              Ok(keep_connection_alive) => {
+                poll.lock().unwrap().registry().reregister(
+                  connection,
+                  event.token(),
+                  Interest::READABLE.add(Interest::WRITABLE),
+                )?;
+                connection_alive = keep_connection_alive;
+              }
+              // Error while sending command, write the error to the client
+              Err(err) => {
+                log::error!("{}[{}] {}", BACKSPACE_CHARACTER, address, err);
+                match connection.write_all(format!("{}", err).as_bytes()) {
+                  Ok(_) => {}
+                  Err(ref err)
+                    if utils::errors::would_block(err) || utils::errors::interrupted(err) => {}
+                  Err(err) => return Err(err.into()),
+                }
+              }
+            };
+          }
+          // Return wether or not the connection is alive
+          connection_alive
+        }
+        // Error occurred while reading, connection is kept alive
+        Err(err) => {
+          log::error!("{}[{}] {}", BACKSPACE_CHARACTER, address, err);
+          true
+        }
+      };
+    }
+  }
+  // Connection not alive
+  if !connection_alive {
+    if let Some((mut connection, address)) = connections.lock().unwrap().remove(&event.token()) {
+      log::info!(
+        "{}[{}] Closing client socket connection",
+        BACKSPACE_CHARACTER,
+        address
+      );
+      connection.shutdown(Shutdown::Both)?;
+      poll
+        .lock()
+        .unwrap()
+        .registry()
+        .deregister(&mut connection)?;
+      log::info!("{}[{}] Connection closed", BACKSPACE_CHARACTER, address);
+    }
+  };
+  Ok(())
+}
+
+fn read_connection(
+  connection: &mut TcpStream,
+  address: &SocketAddr,
+) -> Result<(bool, Option<Vec<u8>>)> {
+  let mut connection_alive = true;
+  let mut received_data = vec![0; 4096];
+  let mut bytes_read = 0;
+  log::trace!(
+    "{}[{}] Reading data from client socket",
+    BACKSPACE_CHARACTER,
+    address
+  );
+  loop {
+    match connection.read(&mut received_data[bytes_read..]) {
+      Ok(0) => {
+        // 0 bytes read means the connection is close
+        connection_alive = false;
+        break;
+      }
+      Ok(n) => {
+        bytes_read += n;
+        if bytes_read == received_data.len() {
+          received_data.resize(received_data.len() + 1024, 0);
+        }
+      }
+      Err(ref err) if utils::errors::would_block(err) => break,
+      Err(ref err) if utils::errors::interrupted(err) => continue,
+      Err(err) => return Err(err.into()),
+    }
+  }
+
+  log::trace!(
+    "{}[{}] Read {} bytes",
+    BACKSPACE_CHARACTER,
+    address,
+    bytes_read
+  );
+  if bytes_read != 0 {
+    let received_data = received_data[..bytes_read].to_vec();
+    return Ok((true, Some(received_data)));
+  }
+
+  if !connection_alive {
+    return Ok((false, None));
+  }
+
+  Ok((true, None))
+}
+
+fn send_command(
+  token: &Token,
+  data: Vec<u8>,
+  sender: &mpsc::Sender<EngineInput>,
+  address: &SocketAddr,
+) -> Result<bool> {
+  log::trace!("{}[{}] Parsing command", BACKSPACE_CHARACTER, address);
+  let data = std::str::from_utf8(&data)?;
+  let command = parse_command(data.trim_end())?;
+  log::trace!("{}[{}] Parsed command", BACKSPACE_CHARACTER, address);
+  match command {
+    Some(command) => {
+      log::trace!(
+        "{}[{}] Sending command to engine: {}",
+        BACKSPACE_CHARACTER,
+        address,
+        command
+      );
+      sender.send(EngineInput::new(token.0, command))?;
+      log::trace!(
+        "{}[{}] Sent command to engine",
+        BACKSPACE_CHARACTER,
+        address
+      );
+      Ok(true)
+    }
+    None => Ok(false),
+  }
+}
+
+fn handle_engine_outcomes(
+  poll: &Arc<Mutex<Poll>>,
+  connections: &Arc<Mutex<HashMap<Token, (TcpStream, SocketAddr)>>>,
+  receiver: &mpsc::Receiver<EngineOutput>,
+) -> Result<()> {
+  loop {
+    log::trace!("Listening to engine outputs");
+    let output = receiver.recv()?;
+    log::trace!("Received engine output");
+    let token = Token(output.id());
+    if let Some((connection, address)) = connections.lock().unwrap().get_mut(&token) {
+      let data = format!("{:?}", output.content());
+      log::trace!(
+        "{}[{}] Writing output to client socket: {:?}",
+        BACKSPACE_CHARACTER,
+        address,
+        output.content()
+      );
+      match connection.write_all(data.as_bytes()) {
+        Ok(_) => {
+          log::trace!("{}[{}] Output wrote", BACKSPACE_CHARACTER, address);
+          poll
+            .lock()
+            .unwrap()
+            .registry()
+            .reregister(connection, token, Interest::READABLE)?
+        }
+        Err(ref err) if utils::errors::would_block(err) || utils::errors::interrupted(err) => {}
+        Err(err) => return Err(err.into()),
+      }
+    }
+  }
+}

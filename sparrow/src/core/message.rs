@@ -1,6 +1,7 @@
 //! Generic DTO to pass message.
 
 /// Data Transfer Object with an `id` and some `content`.
+#[derive(Clone, Default)]
 pub struct Message<T> {
   id: usize,
   content: T,

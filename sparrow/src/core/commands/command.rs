@@ -4,8 +4,8 @@ use crate::core::commands::get_command::GetCommand;
 use crate::core::commands::insert_command::InsertCommand;
 use crate::core::commands::pop_command::PopCommand;
 use crate::core::egg::Egg;
+use crate::core::errors::Result;
 use crate::core::nest::Nest;
-use crate::errors::Result;
 use std::fmt::{Debug, Display};
 
 /// Trait shared by all engine commands.
@@ -42,21 +42,20 @@ pub trait Command: Send + Display + Debug {
 ///
 /// let cmd = parse_command("GET key").unwrap();
 ///
-/// assert_eq!(format!("{}", cmd.unwrap()), "GET {key}");
+/// assert_eq!(format!("{}", cmd), "GET {key}");
 /// ```
 ///
 /// [`Option::Some`]: https://doc.rust-lang.org/std/option/enum.Option.html
 /// [`Option::None`]: https://doc.rust-lang.org/std/option/enum.Option.html
-pub fn parse_command(input: &str) -> Result<Option<Box<dyn Command + Send>>> {
+pub fn parse_command(input: &str) -> Result<Box<dyn Command + Send>> {
   let inputs = input.split(' ').collect::<Vec<&str>>();
   match inputs.get(0) {
     Some(name) => {
       let args = &inputs[1..];
       match *name {
-        "GET" => Ok(Some(Box::new(GetCommand::new(args)?))),
-        "INSERT" => Ok(Some(Box::new(InsertCommand::new(args)?))),
-        "POP" => Ok(Some(Box::new(PopCommand::new(args)?))),
-        "EXIT" => Ok(None),
+        "GET" => Ok(Box::new(GetCommand::new(args)?)),
+        "INSERT" => Ok(Box::new(InsertCommand::new(args)?)),
+        "POP" => Ok(Box::new(PopCommand::new(args)?)),
         unknown => Err(format!("Command not found: {}", unknown).into()),
       }
     }
@@ -70,17 +69,14 @@ mod tests {
 
   #[test]
   fn test_parse_command_valid() {
-    let get_cmd = parse_command("GET key").unwrap().unwrap();
+    let get_cmd = parse_command("GET key").unwrap();
     assert_eq!(format!("{}", get_cmd), "GET {key}");
 
-    let insert_cmd = parse_command("INSERT key value").unwrap().unwrap();
+    let insert_cmd = parse_command("INSERT key value").unwrap();
     assert_eq!(format!("{}", insert_cmd), "INSERT {key} {value}");
 
-    let pop_cmd = parse_command("POP key").unwrap().unwrap();
+    let pop_cmd = parse_command("POP key").unwrap();
     assert_eq!(format!("{}", pop_cmd), "POP {key}");
-
-    let exit_cmd = parse_command("EXIT").unwrap();
-    assert!(exit_cmd.is_none());
   }
 
   #[test]
