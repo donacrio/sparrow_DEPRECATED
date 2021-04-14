@@ -83,10 +83,7 @@ impl Engine {
     self.bus = Some(Arc::new(Mutex::new(bus::Bus::new(BUS_SIZE))));
     log::trace!("Created engine input and output channels");
     log::trace!("Engine initialized");
-    (
-      input_sender,
-      self.bus.as_ref().ok_or("test").unwrap().clone(),
-    )
+    (input_sender, self.bus.as_ref().unwrap().clone())
   }
 
   /// Run the engine.

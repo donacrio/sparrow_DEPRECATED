@@ -24,8 +24,8 @@ pub trait Command: Send + Display + Debug {
   ///
   /// ```
   ///
-  /// [`Nest`]: crate::core::nest::Nest
-  /// [`Engine`]: crate::core::engine::Engine
+  /// [`Nest`]: sparrow::core::nest::Nest
+  /// [`Engine`]: sparrow::core::engine::Engine
   fn execute(&self, nest: &mut Nest) -> Option<Egg>;
 }
 
