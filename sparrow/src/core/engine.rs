@@ -1,12 +1,15 @@
 //! Core engine managing the database.
 
-use super::message::Message;
 use crate::core::commands::Command;
 use crate::core::egg::Egg;
+use crate::core::errors::Result;
+use crate::core::message::Message;
 use crate::core::nest::Nest;
-use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
+
+const BUS_SIZE: usize = 256;
 
 /// Input send to the engine through an input sender.
 pub type EngineInput = Message<Box<dyn Command>>;
@@ -17,27 +20,30 @@ pub type EngineOutput = Message<Option<Egg>>;
 ///
 /// # Examples
 /// ```rust
-/// use sparrow::net::run_tcp_server;
-/// use sparrow::core::Engine;
+/// async {
+///   use sparrow::net::run_tcp_server;
+///   use sparrow::core::Engine;
 ///
-/// let mut engine = Engine::new();
-/// let (sender, receiver) = engine.init();
-/// std::thread::spawn(move || engine.run().unwrap());
-/// std::thread::spawn(move || run_tcp_server("127.0.0.1", sender, receiver).unwrap());
+///   let mut engine = Engine::new();
+///   let (sender, bus) = engine.init();
+///
+///   std::thread::spawn(move || engine.run().unwrap());
+///   run_tcp_server("127.0.0.1", sender, &bus).await.unwrap();
+/// };
 /// ```
 pub struct Engine {
   /// [`Nest`] used for in-memory data storage.
   ///
   /// [`Nest`]: sparrow::core::nest::Nest
   nest: Nest,
-  /// [`mpsc`] consumer used to retrieve inputs for the engine.
+  /// [`mpsc`] consumer queue used to retrieve inputs for the engine.
   ///
   /// [`mpsc`]: https://doc.rust-lang.org/std/sync/mpsc/
-  receiver: Option<mpsc::Receiver<EngineInput>>,
-  /// [`mpsc`] producer used to send outputs from the engine.
+  queue: Option<mpsc::Receiver<EngineInput>>,
+  /// [`mpsc`] bus used to broadcast outputs outputs from the engine to the listening receivers.
   ///
   /// [`mpsc`]: https://doc.rust-lang.org/std/sync/mpsc/
-  sender: Option<mpsc::Sender<EngineOutput>>,
+  bus: Option<Arc<Mutex<bus::Bus<EngineOutput>>>>,
 }
 
 impl Engine {
@@ -47,8 +53,8 @@ impl Engine {
   pub fn new() -> Engine {
     Engine {
       nest: Nest::new(),
-      receiver: None,
-      sender: None,
+      queue: None,
+      bus: None,
     }
   }
 }
@@ -64,16 +70,20 @@ impl Engine {
   ///
   /// Instantiate an return the input and output producers and consumers
   /// use to communicate with the engine through threads.
-  pub fn init(&mut self) -> (mpsc::Sender<EngineInput>, mpsc::Receiver<EngineOutput>) {
+  pub fn init(
+    &mut self,
+  ) -> (
+    mpsc::Sender<EngineInput>,
+    Arc<Mutex<bus::Bus<EngineOutput>>>,
+  ) {
     log::trace!("Initializing engine");
-    log::trace!("Creating engine input and output mpsc channels");
+    log::trace!("Creating engine input and output channels");
     let (input_sender, input_receiver) = mpsc::channel::<EngineInput>();
-    let (output_sender, output_receiver) = mpsc::channel::<EngineOutput>();
-    log::trace!("Created engine channels");
-    self.receiver = Some(input_receiver);
-    self.sender = Some(output_sender);
+    self.queue = Some(input_receiver);
+    self.bus = Some(Arc::new(Mutex::new(bus::Bus::new(BUS_SIZE))));
+    log::trace!("Created engine input and output channels");
     log::trace!("Engine initialized");
-    (input_sender, output_receiver)
+    (input_sender, self.bus.as_ref().unwrap().clone())
   }
 
   /// Run the engine.
@@ -88,13 +98,13 @@ impl Engine {
   /// [`EngineOutput`]: sparrow::core::engine::EngineOutput
   pub fn run(&mut self) -> Result<()> {
     loop {
-      let receiver = self
-        .receiver
+      let queue = self
+        .queue
         .as_ref()
         .ok_or("Sparrow engine is not initialized")?;
 
       log::trace!("Waiting for engine input");
-      let input = receiver.recv()?;
+      let input = queue.recv()?;
       log::trace!("Received input");
 
       log::trace!("Processing input");
@@ -102,11 +112,11 @@ impl Engine {
       log::trace!("Input processed");
 
       log::trace!("Sending output");
-      let sender = self
-        .sender
-        .as_ref()
+      let bus = self
+        .bus
+        .as_mut()
         .ok_or("Sparrow engine is not initialized")?;
-      sender.send(output)?;
+      bus.lock().unwrap().broadcast(output);
       log::trace!("Output sent");
     }
   }
@@ -156,7 +166,8 @@ mod tests {
 
   #[rstest]
   fn test_run_engine(mut engine: Engine, egg: Egg) {
-    let (sender, receiver) = engine.init();
+    let (sender, bus) = engine.init();
+    let mut receiver = bus.lock().unwrap().add_rx();
     std::thread::spawn(move || {
       engine.run().unwrap();
     });
@@ -164,7 +175,7 @@ mod tests {
     // Send input insert to engine
     // Result should be None because there is no egg for this value
     let cmd = &format!("INSERT {} {}", TEST_KEY, TEST_VALUE);
-    let cmd = parse_command(cmd).unwrap().unwrap();
+    let cmd = parse_command(cmd).unwrap();
     sender.send(EngineInput::new(1, cmd)).unwrap();
     let output = receiver.recv().unwrap();
     assert_eq!(output.id(), 1);
@@ -173,7 +184,7 @@ mod tests {
     // Send input get to engine
     // Result should be the previously inserted egg
     let cmd = &format!("GET {}", TEST_KEY);
-    let cmd = parse_command(cmd).unwrap().unwrap();
+    let cmd = parse_command(cmd).unwrap();
     sender.send(EngineInput::new(1, cmd)).unwrap();
     let output = receiver.recv().unwrap();
     assert_eq!(output.id(), 1);

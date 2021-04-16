@@ -8,10 +8,12 @@ repository = "https://github.com/DonaCrio/sparrow"
 version = "0.1.0"
 
 [dependencies]
+bus = "2.2"
 chrono = "0.4"
 env_logger = "0.8"
+hyper = { version = "0.14", features = ["full"] }
 log = "0.4"
-mio = { version="0.7", features=["net", "os-poll"] }
+tokio = { version = "1.4", features = ["full"] }
 
 [dev-dependencies]
-rstest = "0.6"
+rstest = "0.7"

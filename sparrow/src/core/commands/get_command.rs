@@ -2,8 +2,8 @@
 //!
 use crate::core::commands::Command;
 use crate::core::egg::Egg;
+use crate::core::errors::Result;
 use crate::core::nest::Nest;
-use crate::errors::Result;
 use std::fmt;
 
 /// Engine GET command.

@@ -1,6 +1,6 @@
 //! In-memory data storage.
 
-use super::egg::Egg;
+use crate::core::egg::Egg;
 use std::collections::HashMap;
 
 /// Nest is the in-memory data storage of Sparrow.

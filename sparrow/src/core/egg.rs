@@ -50,7 +50,7 @@ impl fmt::Display for Egg {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(
       f,
-      "Egg {{ key={}, value={}, created_at={} }}",
+      "{{ key={}, value={}, created_at={} }}",
       self.key, self.value, self.created_at
     )
   }
@@ -95,7 +95,7 @@ mod tests {
   #[rstest]
   fn test_egg_display_impl(egg: Egg) {
     let expected = format!(
-      "Egg {{ key={}, value={}, created_at={} }}",
+      "{{ key={}, value={}, created_at={} }}",
       egg.key(),
       egg.value(),
       egg.created_at()
