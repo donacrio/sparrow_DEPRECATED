@@ -9,8 +9,6 @@ use crate::logger::BACKSPACE_CHARACTER;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
-const BUS_SIZE: usize = 256;
-
 /// Input send to the engine through an input sender.
 pub type EngineInput = Message<Box<dyn Command>>;
 /// Output send from the engine through the output consumer.
@@ -25,10 +23,10 @@ pub type EngineOutput = Message<Option<Egg>>;
 ///   use sparrow::core::Engine;
 ///
 ///   let mut engine = Engine::new();
-///   let (sender, bus) = engine.init();
+///   let (sender, bus) = engine.init(256);
 ///
 ///   std::thread::spawn(move || engine.run().unwrap());
-///   run_tcp_server("127.0.0.1", sender, &bus).await.unwrap();
+///   run_tcp_server("127.0.0.1:8080".parse().unwrap(), 256, sender, &bus).await.unwrap();
 /// };
 /// ```
 pub struct Engine {
@@ -72,6 +70,7 @@ impl Engine {
   /// use to communicate with the engine through threads.
   pub fn init(
     &mut self,
+    engine_output_bus_size: usize,
   ) -> (
     mpsc::Sender<EngineInput>,
     Arc<Mutex<bus::Bus<EngineOutput>>>,
@@ -80,7 +79,7 @@ impl Engine {
     log::trace!("Creating engine input and output channels");
     let (input_sender, input_receiver) = mpsc::channel::<EngineInput>();
     self.queue = Some(input_receiver);
-    self.bus = Some(Arc::new(Mutex::new(bus::Bus::new(BUS_SIZE))));
+    self.bus = Some(Arc::new(Mutex::new(bus::Bus::new(engine_output_bus_size))));
     log::trace!("Created engine input and output channels");
     log::trace!("Engine initialized");
     (input_sender, self.bus.as_ref().unwrap().clone())
@@ -161,12 +160,12 @@ mod tests {
 
   #[rstest]
   fn test_engine_init(mut engine: Engine) {
-    engine.init();
+    engine.init(256);
   }
 
   #[rstest]
   fn test_run_engine(mut engine: Engine, egg: Egg) {
-    let (sender, bus) = engine.init();
+    let (sender, bus) = engine.init(256);
     let mut receiver = bus.lock().unwrap().add_rx();
     std::thread::spawn(move || {
       engine.run().unwrap();
