@@ -1,12 +1,16 @@
-name: Continuous integration
+name: Releases
 
-on: push
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  ci:
+  build_os_release:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -30,8 +34,15 @@ jobs:
           target: ${{ matrix.target }}
           override: true
           components: rustfmt, clippy
+      - run: cargo build --workspace --verbose --release
+      - run: cargo test --workspace --verbose --release
 
-      - run: cargo fmt --all -- --check
-      - run: cargo clippy --workspace --verbose -- -D warnings
-      - run: cargo build --workspace --verbose
-      - run: cargo test --workspace --verbose
+  build_docker_release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/build-push-action@v2
+        with:
+          tags: sparrow:latest
+          build-args: |
+            MODULE_NAME=sparrow
+      - run: echo ${{ steps.docker_build.outputs.digest }}

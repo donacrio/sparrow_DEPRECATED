@@ -23,4 +23,6 @@ COPY --from=builder /home/rust/src/sparrow/target/x86_64-unknown-linux-musl/rele
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 ENV SSL_CERT_DIR=/etc/ssl/certs
-CMD ["./app"]
+# Add default env file
+COPY ./.env ./.env
+ENTRYPOINT ["./app"]
