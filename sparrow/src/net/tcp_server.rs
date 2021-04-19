@@ -35,7 +35,7 @@ use std::sync::{Arc, Mutex};
 /// };
 /// ```
 pub async fn run_tcp_server(
-  address: SocketAddr,
+  port: u16,
   max_connections: usize,
   sender: mpsc::Sender<EngineInput>,
   bus: &Arc<Mutex<bus::Bus<EngineOutput>>>,
@@ -73,6 +73,7 @@ pub async fn run_tcp_server(
     response
   });
 
+  let address = SocketAddr::from(([127, 0, 0, 1], port));
   let server = Server::bind(&address).serve(service);
 
   server.await?;

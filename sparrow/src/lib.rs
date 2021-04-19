@@ -22,7 +22,7 @@
 //! };
 //! ```
 
-pub mod config;
+pub mod cli;
 pub mod core;
 pub mod logger;
 pub mod net;
