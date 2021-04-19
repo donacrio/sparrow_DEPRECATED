@@ -6,7 +6,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  ci:
+  run_tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -21,9 +21,14 @@ jobs:
           - x86_64-pc-windows-msvc
 
     steps:
-      - uses: actions/checkout@v2
-      - run: sudo apt update && sudo apt install -y build-essential
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Update system
+        run: sudo apt update && sudo apt install -y build-essential
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
@@ -31,7 +36,14 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      - run: cargo fmt --all -- --check
-      - run: cargo clippy --workspace --verbose -- -D warnings
-      - run: cargo build --workspace --verbose
-      - run: cargo test --workspace --verbose
+      - name: Check code formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check code correctness
+        run: cargo clippy --workspace --verbose -- -D warnings
+
+      - name: Build binaries
+        run: cargo build --workspace --verbose
+
+      - name: Test binaries
+        run: cargo test --workspace --verbose

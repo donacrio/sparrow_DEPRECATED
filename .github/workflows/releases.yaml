@@ -25,24 +25,52 @@ jobs:
           - x86_64-pc-windows-msvc
 
     steps:
-      - uses: actions/checkout@v2
-      - run: sudo apt update && sudo apt install -y build-essential
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Update system
+        run: sudo apt update && sudo apt install -y build-essential
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target }}
           override: true
           components: rustfmt, clippy
-      - run: cargo build --workspace --verbose --release
-      - run: cargo test --workspace --verbose --release
+
+      - name: Build optimized release binaries
+        run: cargo build --workspace --verbose --release
+
+      - name: Test optimized release binaries
+        run: cargo test --workspace --verbose --release
 
   build_docker_release:
     runs-on: ubuntu-latest
     steps:
-      - uses: docker/build-push-action@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Create .env default config
+        run: cp ./default.env ./.env
+
+      - name: Build Sparrow docker image
+        uses: docker/build-push-action@v2
         with:
+          context: .
           tags: sparrow:latest
+          push: false
           build-args: |
             MODULE_NAME=sparrow
+
+      - name: Build Sparrow CLI docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          tags: sparrow-cli:latest
+          push: false
+          build-args: |
+            MODULE_NAME=sparrow-cli
+
       - run: echo ${{ steps.docker_build.outputs.digest }}
