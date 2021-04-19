@@ -15,13 +15,14 @@
 //!   use sparrow::core::Engine;
 //!
 //!   let mut engine = Engine::new();
-//!   let (sender, bus) = engine.init();
+//!   let (sender, bus) = engine.init(256);
 //!
 //!   std::thread::spawn(move || engine.run().unwrap());
-//!   run_tcp_server("127.0.0.1", sender, &bus).await.unwrap();
+//!   run_tcp_server("127.0.0.1:8080".parse().unwrap(), 256, sender, &bus).await.unwrap();
 //! };
 //! ```
 
+pub mod config;
 pub mod core;
 pub mod logger;
 pub mod net;

@@ -13,9 +13,6 @@ use std::net::SocketAddr;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
-// TODO: move this in an EVAR
-const MAX_CONNECTIONS: usize = 256;
-
 /// Run the TCP server on the given address.
 ///
 /// [`mpsc::Sender`] is a producer used to send messages to the [`sparrow::Engine`] thread.
@@ -31,24 +28,23 @@ const MAX_CONNECTIONS: usize = 256;
 ///   use sparrow::core::Engine;
 ///
 ///   let mut engine = Engine::new();
-///   let (sender, bus) = engine.init();
+///   let (sender, bus) = engine.init(256);
 ///
 ///   std::thread::spawn(move || engine.run().unwrap());
-///   run_tcp_server("127.0.0.1", sender, &bus).await.unwrap();
+///   run_tcp_server("127.0.0.1:8080".parse().unwrap(), 256, sender, &bus).await.unwrap();
 /// };
 /// ```
 pub async fn run_tcp_server(
-  address: &str,
+  address: SocketAddr,
+  max_connections: usize,
   sender: mpsc::Sender<EngineInput>,
   bus: &Arc<Mutex<bus::Bus<EngineOutput>>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
   // Queue is used to store unique available ids
-  let mut available_ids: VecDeque<usize> = VecDeque::with_capacity(MAX_CONNECTIONS);
-  for i in 0..MAX_CONNECTIONS {
+  let mut available_ids: VecDeque<usize> = VecDeque::with_capacity(max_connections);
+  for i in 0..max_connections {
     available_ids.push_back(i);
   }
-
-  let address: SocketAddr = address.parse()?;
 
   // Create the hyper service that will handle HTTP requests
   let service = make_service_fn(move |socket: &AddrStream| {
@@ -79,9 +75,8 @@ pub async fn run_tcp_server(
 
   let server = Server::bind(&address).serve(service);
 
-  if let Err(e) = server.await {
-    log::error!("{}", e)
-  }
+  server.await?;
+
   Ok(())
 }
 
