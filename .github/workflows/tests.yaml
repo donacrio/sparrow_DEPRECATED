@@ -21,13 +21,14 @@ jobs:
           - x86_64-pc-windows-msvc
 
     steps:
-      - name: Checkout
+      -
+        name: Checkout
         uses: actions/checkout@v2
-
-      - name: Update system
+      -
+        name: Update system
         run: sudo apt update && sudo apt install -y build-essential
-
-      - name: Install Rust
+      -
+        name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -35,15 +36,15 @@ jobs:
           target: ${{ matrix.target }}
           override: true
           components: rustfmt, clippy
-
-      - name: Check code formatting
+      -
+        name: Check code formatting
         run: cargo fmt --all -- --check
-
-      - name: Check code correctness
+      -
+        name: Check code correctness
         run: cargo clippy --workspace --verbose -- -D warnings
-
-      - name: Build binaries
+      -
+        name: Build binaries
         run: cargo build --workspace --verbose
-
-      - name: Test binaries
+      -
+        name: Test binaries
         run: cargo test --workspace --verbose
