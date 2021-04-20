@@ -10,4 +10,4 @@ version = "0.1.0"
 [dependencies]
 
 [dev-dependencies]
-rstest = "0.6"
+rstest = "0.7"
