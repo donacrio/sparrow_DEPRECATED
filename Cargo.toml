@@ -3,6 +3,7 @@
 members = [
   "sparrow",
   "sparrow-cli",
+  "sparrow-resp"
 ]
 
 [profile.dev]
