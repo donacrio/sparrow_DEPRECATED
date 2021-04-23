@@ -1,3 +1,5 @@
+//! Constant values used in this lib.
+
 // Data types first byte
 pub const ARRAY_FIRST_BYTE: u8 = b'*';
 pub const BULK_STRING_FIRST_BYTE: u8 = b'$';

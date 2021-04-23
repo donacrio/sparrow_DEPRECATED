@@ -1,3 +1,5 @@
+//! Deserialization utilities for the RESP protocol.
+
 use crate::constants::{
   ARRAY_FIRST_BYTE, BULK_STRING_FIRST_BYTE, CR_BYTE, ERROR_FIRST_BYTE, INTEGER_FIRST_BYTE, LF_BYTE,
   RESPONSE_MAX_SIZE, SIMPLE_STRING_FIRST_BYTE,
@@ -5,10 +7,14 @@ use crate::constants::{
 use crate::data::Data;
 use std::io::{BufRead, BufReader, Error, ErrorKind, Read, Result};
 
+/// Decode a given string in the RESP format.
 pub fn decode_string(content: String) -> Result<Data> {
   decode(&mut BufReader::new(content.as_bytes()))
 }
 
+/// Decode a given bytes buffer in the RESP format into an [Data] enum member.
+///
+/// [Data]: crate::Data
 pub fn decode<R: Read>(reader: &mut BufReader<R>) -> Result<Data> {
   let mut buff = Vec::<u8>::new();
   reader.read_until(LF_BYTE, &mut buff)?;
