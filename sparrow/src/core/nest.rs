@@ -8,7 +8,7 @@ use std::collections::HashMap;
 /// It contains an [`HashMap`] to store multiple [`Egg`] along with their key.
 ///
 /// [`HashMap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
-/// [`Egg`]: sparrow::core::egg::Egg
+/// [`Egg`]: crate::core::Egg
 pub struct Nest {
   map: HashMap<String, Egg>,
 }
@@ -16,7 +16,7 @@ pub struct Nest {
 impl Nest {
   /// Return a new [`Nest`].
   ///
-  /// [`Nest`]: sparrow::core::nest::Nest
+  /// [`Nest`]: crate::core::Nest
   pub fn new() -> Nest {
     Nest {
       map: HashMap::new(),
@@ -36,7 +36,7 @@ impl Nest {
   /// # Arguments
   /// * `egg` - [`Egg`] to insert
   ///
-  /// [`Egg`]: sparrow::core::egg::Egg
+  /// [`Egg`]: crate::core::Egg
   pub fn insert(&mut self, egg: Egg) -> Option<Egg> {
     self.map.insert(egg.key().clone(), egg)
   }
@@ -45,7 +45,7 @@ impl Nest {
   /// # Arguments
   /// * `key` - Key value of the [`Egg`] to get
   ///
-  /// [`Egg`]: sparrow::core::egg::Egg
+  /// [`Egg`]: crate::core::Egg
   pub fn get(&self, key: &str) -> Option<&Egg> {
     self.map.get(key)
   }
@@ -54,7 +54,7 @@ impl Nest {
   /// # Arguments
   /// * `key` - Key value of the [`Egg`] to pop
   ///
-  /// [`Egg`]: sparrow::core::egg::Egg
+  /// [`Egg`]: crate::core::Egg
   pub fn pop(&mut self, key: &str) -> Option<Egg> {
     self.map.remove(key)
   }

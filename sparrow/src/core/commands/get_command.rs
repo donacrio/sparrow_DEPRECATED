@@ -20,7 +20,7 @@ impl GetCommand {
   ///
   /// # Examples
   /// ```rust
-  /// use sparrow::core::commands::GetCommand;
+  /// use crate::core::commands::GetCommand;
   ///
   /// let args = &vec!["my key"];
   /// let cmd = GetCommand::new(args).unwrap();
@@ -28,7 +28,7 @@ impl GetCommand {
   /// assert_eq!(format!("{}", cmd), "GET {my key}");
   /// ```
   ///
-  /// [`GetCommand`]: sparrow::core::commands::get_command::GetCommand
+  /// [`GetCommand`]: crate::core::commands::GetCommand
   pub fn new(args: &[&str]) -> Result<GetCommand> {
     match args.len() {
       1 => {
@@ -57,7 +57,7 @@ impl fmt::Display for GetCommand {
 impl Command for GetCommand {
   /// Execute the `GET key` command on a given [`Nest`].
   ///
-  /// [`Nest`]: sparrow::core::nest::Nest
+  /// [`Nest`]: crate::core::Nest
   fn execute(&self, nest: &mut Nest) -> Option<Egg> {
     nest.get(&self.key).cloned()
   }

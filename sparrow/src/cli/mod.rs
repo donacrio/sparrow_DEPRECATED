@@ -17,7 +17,7 @@ use std::env;
 ///
 /// # Usage
 /// ```rust
-/// use sparrow::cli::run_cli;
+/// use crate::cli::run_cli;
 ///
 /// async {
 ///   match run_cli() {
@@ -36,7 +36,7 @@ use std::env;
 /// };
 ///```
 ///
-/// [`Config`]: sparrow::cli::config::Config
+/// [`Config`]: crate::cli::Config
 pub fn run_cli() -> Result<Option<Config>, Box<dyn std::error::Error>> {
   // Collect cli parameters
   let args: Vec<String> = env::args().collect();

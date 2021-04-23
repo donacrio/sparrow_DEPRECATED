@@ -2,7 +2,7 @@
 //!
 //! This module is used to define commands that will be executed by the [`Engine`].
 //!
-//! [`Engine`]: sparrow::core::engine::Engine
+//! [`Engine`]: crate::core::Engine
 mod command;
 mod get_command;
 mod insert_command;

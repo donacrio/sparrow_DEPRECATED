@@ -653,9 +653,6 @@ dependencies = [
 [[package]]
 name = "sparrow-cli"
 version = "0.1.0"
-dependencies = [
- "rstest",
-]
 
 [[package]]
 name = "sparrow-resp"

@@ -11,8 +11,6 @@ pub struct Message<T> {
 
 impl<T> Message<T> {
   /// Return a new [`Message`]
-  ///
-  /// [`Message`]: sparrow::core::message::Message
   pub fn new(id: usize, content: T) -> Message<T> {
     Message { id, content }
   }

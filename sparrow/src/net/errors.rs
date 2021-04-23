@@ -23,7 +23,7 @@ pub struct Error {
 impl Error {
   /// Return a new [`Error`].
   ///
-  /// [`Error`]: sparrow::net::errors::Error
+  /// [`Error`]: crate::net::Error
   pub fn new(status_code: hyper::StatusCode, error: Box<dyn std::error::Error>) -> Error {
     Error { status_code, error }
   }

@@ -15,8 +15,8 @@ use std::sync::{Arc, Mutex};
 
 /// Run the TCP server on the given address.
 ///
-/// [`mpsc::Sender`] is a producer used to send messages to the [`sparrow::Engine`] thread.
-/// [`bus::Bus`] is a broadcaster used to retrieve messages from [`sparrow::Engine`] thread.
+/// [`mpsc::Sender`] is a producer used to send messages to the [`crate::Engine`] thread.
+/// [`bus::Bus`] is a broadcaster used to retrieve messages from [`crate::Engine`] thread.
 ///
 /// [`mpsc::Sender`]: std::sync::mpsc::Sender
 /// [`bus::Bus`]: bus::Bus
@@ -24,8 +24,8 @@ use std::sync::{Arc, Mutex};
 /// # Examples
 /// ```rust
 /// async {
-///   use sparrow::net::run_tcp_server;
-///   use sparrow::core::Engine;
+///   use crate::net::run_tcp_server;
+///   use crate::core::Engine;
 ///
 ///   let mut engine = Engine::new();
 ///   let (sender, bus) = engine.init(256);

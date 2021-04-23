@@ -18,7 +18,7 @@ impl PopCommand {
   ///
   /// # Examples
   /// ```rust
-  /// use sparrow::core::commands::PopCommand;
+  /// use crate::core::commands::PopCommand;
   ///
   /// let args = &vec!["my key"];
   /// let cmd = PopCommand::new(args).unwrap();
@@ -26,7 +26,7 @@ impl PopCommand {
   /// assert_eq!(format!("{}", cmd), "POP {my key}");
   /// ```
   ///
-  /// [`PopCommand`]: sparrow::core::commands::get_command::PopCommand
+  /// [`PopCommand`]: crate::core::commands::PopCommand
   pub fn new(args: &[&str]) -> Result<PopCommand> {
     match args.len() {
       1 => {
@@ -55,7 +55,7 @@ impl fmt::Display for PopCommand {
 impl Command for PopCommand {
   /// Execute the `POP key` command on a given [`Nest`].
   ///
-  /// [`Nest`]: sparrow::core::nest::Nest
+  /// [`Nest`]: crate::core::Nest
   fn execute(&self, nest: &mut Nest) -> Option<Egg> {
     nest.pop(&self.key)
   }
