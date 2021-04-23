@@ -1,4 +1,6 @@
 //! Implementation of the RESP protocol used by Sparrow project.
+//!
+//! You can find the specifications of the RESP protocol at: https://redis.io/topics/protocol
 
 mod constants;
 mod data;
