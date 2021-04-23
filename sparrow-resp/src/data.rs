@@ -1,6 +1,6 @@
 //! Rust enum representation of data types used by the RESP protocol.
 
-/// Data types used by the RESP protocol.
+/// Enum representation of RESP data types.
 #[derive(Debug, PartialEq)]
 pub enum Data {
   Array(Vec<Data>),

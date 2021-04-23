@@ -1,19 +1,31 @@
+//! Serialization utilities for the RESP protocol.
+
 use crate::constants::{
   ARRAY_FIRST_BYTE, BULK_STRING_FIRST_BYTE, CRLF_BYTES, ERROR_FIRST_BYTE, INTEGER_FIRST_BYTE,
   NULL_ARRAY_BYTES, NULL_BYTES, SIMPLE_STRING_FIRST_BYTE,
 };
 use crate::data::Data;
 
+/// Encode a given string in the RESP format to a bytes buffer.
+///
+/// # Usage
+/// This function is mostly used to encode commands made to the Sparrow engine.
 pub fn encode_string(content: String) -> Vec<u8> {
-  encode(&Data::SimpleString(content))
+  encode(&Data::BulkString(content))
 }
 
+/// Encode a given [Data] enum member in the RESP format to a bytes buffer.
+///
+/// [Data]: crate::Data
 pub fn encode(data: &Data) -> Vec<u8> {
   let mut buff = Vec::<u8>::new();
   buff_encode(data, &mut buff);
   buff
 }
 
+/// Encode a given [Data] enum member in the RESP format and append to a given bytes buffer.
+///
+/// [Data]: crate::Data
 fn buff_encode(data: &Data, buff: &mut Vec<u8>) {
   match data {
     Data::Array(array) => {
