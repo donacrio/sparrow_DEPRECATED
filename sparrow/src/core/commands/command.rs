@@ -19,13 +19,13 @@ pub trait Command: Send + Display + Debug {
   ///
   /// # Examples
   /// ```rust
-  /// use sparrow::core::commands::Command;
+  /// use crate::core::commands::Command;
   ///
   ///
   /// ```
   ///
-  /// [`Nest`]: sparrow::core::nest::Nest
-  /// [`Engine`]: sparrow::core::engine::Engine
+  /// [`Nest`]: crate::core::Nest
+  /// [`Engine`]: crate::core::Engine
   fn execute(&self, nest: &mut Nest) -> Option<Egg>;
 }
 
@@ -38,7 +38,7 @@ pub trait Command: Send + Display + Debug {
 ///
 /// # Examples
 /// ```rust
-/// use sparrow::core::commands::parse_command;
+/// use crate::core::commands::parse_command;
 ///
 /// let cmd = parse_command("GET key").unwrap();
 ///

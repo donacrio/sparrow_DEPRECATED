@@ -1,7 +1,36 @@
-use sparrow::cli::{run_cli, Config};
-use sparrow::core::Engine;
-use sparrow::logger;
-use sparrow::net::run_tcp_server;
+//! Sparrow is a fast, low-level, lightweight in-memory database.
+//! The project is under active development and new features are shipped every week! 🥳
+//!
+//! # Usage
+//!
+//! For now Sparrow runs as the following:
+//! - The engine is ran in one thread and executes commands received
+//! through an input consumer and sends the output using a broadcasting bus.
+//! - The TCP server is ran asynchronously using [tokio] backend in the main thread. It receives commands from socket connections
+//! and send them to the engine using an input producer. The outputs are retrieved using the engine bus.
+//!
+//! ```rust
+//! async {
+//!   use crate::net::run_tcp_server;
+//!   use crate::core::Engine;
+//!
+//!   let mut engine = Engine::new();
+//!   let (sender, bus) = engine.init(256);
+//!
+//!   std::thread::spawn(move || engine.run().unwrap());
+//!   run_tcp_server("127.0.0.1:8080".parse().unwrap(), 256, sender, &bus).await.unwrap();
+//! };
+//! ```
+//!
+//! [tokio]: tokio
+mod cli;
+mod core;
+mod logger;
+mod net;
+
+use crate::cli::{run_cli, Config};
+use crate::core::Engine;
+use crate::net::run_tcp_server;
 
 #[tokio::main]
 async fn main() {

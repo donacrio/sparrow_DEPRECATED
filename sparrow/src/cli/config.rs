@@ -24,7 +24,7 @@ impl Config {
   /// **Because this methods loads a default [`Config`],
   /// all environment variables must be defined in the .env file**
   ///
-  /// [`Config`]: sparrow::cli::config::Config
+  /// [`Config`]: crate::cli::Config
   pub fn load_env(env_filepath: Option<String>) -> Result<Config, Box<dyn Error>> {
     // Load environment variables from specified .env file
     match env_filepath {

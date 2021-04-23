@@ -19,8 +19,8 @@ pub type EngineOutput = Message<Option<Egg>>;
 /// # Examples
 /// ```rust
 /// async {
-///   use sparrow::net::run_tcp_server;
-///   use sparrow::core::Engine;
+///   use crate::net::run_tcp_server;
+///   use crate::core::Engine;
 ///
 ///   let mut engine = Engine::new();
 ///   let (sender, bus) = engine.init(256);
@@ -32,7 +32,7 @@ pub type EngineOutput = Message<Option<Egg>>;
 pub struct Engine {
   /// [`Nest`] used for in-memory data storage.
   ///
-  /// [`Nest`]: sparrow::core::nest::Nest
+  /// [`Nest`]: crate::core::Nest
   nest: Nest,
   /// [`mpsc`] consumer queue used to retrieve inputs for the engine.
   ///
@@ -47,7 +47,7 @@ pub struct Engine {
 impl Engine {
   /// Return a new [`Engine`].
   ///
-  /// [`Engine`]: sparrow::core::engine::Engine
+  /// [`Engine`]: crate::core::Engine
   pub fn new() -> Engine {
     Engine {
       nest: Nest::new(),
@@ -92,9 +92,9 @@ impl Engine {
   /// - Process this input (i.e. execute the [`Command`] contained in the input)
   /// - Send the [`EngineOutput`] through the output producer
   ///
-  /// [`EngineInput`]: sparrow::core::engine::EngineInput
-  /// [`Command`]: sparrow::core::commands::command::Command
-  /// [`EngineOutput`]: sparrow::core::engine::EngineOutput
+  /// [`EngineInput`]: crate::core::EngineInput
+  /// [`Command`]: crate::core::commands::Command
+  /// [`EngineOutput`]: crate::core::EngineOutput
   pub fn run(&mut self) -> Result<()> {
     loop {
       let queue = self
@@ -122,7 +122,7 @@ impl Engine {
 
   /// Process an [`EngineInput`].
   ///
-  /// [`EngineInput`]: sparrow::core::engine::EngineInput
+  /// [`EngineInput`]: crate::core::EngineInput
   fn process(&mut self, input: EngineInput) -> EngineOutput {
     let id = input.id();
     let command = input.content();

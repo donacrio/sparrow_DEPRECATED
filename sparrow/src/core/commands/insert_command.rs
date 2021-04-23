@@ -19,7 +19,7 @@ impl InsertCommand {
   ///
   /// # Examples
   /// ```rust
-  /// use sparrow::core::commands::InsertCommand;
+  /// use crate::core::commands::InsertCommand;
   ///
   /// let args = &vec!["my key", "some value"];
   /// let cmd = InsertCommand::new(args).unwrap();
@@ -27,7 +27,7 @@ impl InsertCommand {
   /// assert_eq!(format!("{}", cmd), "INSERT {my key} {some value}");
   /// ```
   ///
-  /// [`GetCommand`]: sparrow::core::commands::get_command::GetCommand
+  /// [`GetCommand`]: crate::core::commands::get_command::GetCommand
   pub fn new(args: &[&str]) -> Result<InsertCommand> {
     match args.len() {
       2 => {
@@ -58,7 +58,7 @@ impl fmt::Display for InsertCommand {
 impl Command for InsertCommand {
   /// Execute the `INSERT key value` command on a given [`Nest`].
   ///
-  /// [`Nest`]: sparrow::core::nest::Nest
+  /// [`Nest`]: crate::core::Nest
   fn execute(&self, nest: &mut Nest) -> Option<Egg> {
     nest.insert(Egg::new(&self.key, &self.value))
   }
