@@ -8,14 +8,15 @@ repository = "https://github.com/DonaCrio/sparrow"
 version = "0.1.0"
 
 [dependencies]
+async-std = "1.9"
 bus = "2.2"
 chrono = "0.4"
 dotenv = "0.15"
 env_logger = "0.8"
+futures = "0.3"
 getopts = "0.2"
-hyper = { version = "0.14", features = ["full"] }
 log = "0.4"
-tokio = { version = "1.4", features = ["full"] }
+sparrow-resp = { path= "../sparrow-resp" }
 
 [dev-dependencies]
-rstest = "0.7"
+rstest = "0.8"

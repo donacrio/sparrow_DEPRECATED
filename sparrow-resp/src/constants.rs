@@ -1,11 +1,11 @@
 //! Constant values used in this lib.
 
 // Data types first byte
-pub const ARRAY_FIRST_BYTE: u8 = b'*';
-pub const BULK_STRING_FIRST_BYTE: u8 = b'$';
-pub const ERROR_FIRST_BYTE: u8 = b'-';
-pub const INTEGER_FIRST_BYTE: u8 = b':';
-pub const SIMPLE_STRING_FIRST_BYTE: u8 = b'+';
+pub const ARRAY_FIRST_BYTE: &[u8] = b"*";
+pub const BULK_STRING_FIRST_BYTE: &[u8] = b"$";
+pub const ERROR_FIRST_BYTE: &[u8] = b"-";
+pub const INTEGER_FIRST_BYTE: &[u8] = b":";
+pub const SIMPLE_STRING_FIRST_BYTE: &[u8] = b"+";
 
 // Carriage Return Line Feed
 pub const CRLF_BYTES: &[u8] = b"\r\n";

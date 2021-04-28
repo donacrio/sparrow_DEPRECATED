@@ -16,12 +16,5 @@ pub const TCP_SERVER_PORT: CliOpt = CliOpt::new(
   "PORT",
   "TCP_SERVER_PORT",
 );
-pub const TCP_SERVER_MAX_CONNECTIONS: CliOpt = CliOpt::new(
-  "",
-  "max-conn",
-  "set tcp server maximum number of connections",
-  "NUMBER",
-  "TCP_SERVER_MAX_CONNECTIONS",
-);
 
 pub const HELP: CliFlag = CliFlag::new("h", "help", "display this message");
