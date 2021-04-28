@@ -16,6 +16,16 @@ pub struct EngineInput {
 }
 
 impl EngineInput {
+  pub fn new(id: String, command: Box<dyn Command>, sender: Sender<EngineOutput>) -> EngineInput {
+    EngineInput {
+      id,
+      command,
+      sender,
+    }
+  }
+}
+
+impl EngineInput {
   pub fn id(&self) -> &String {
     &self.id
   }
@@ -28,6 +38,7 @@ impl EngineInput {
 }
 
 /// Output send from the engine through the output sender.
+#[derive(Debug)]
 pub struct EngineOutput {
   id: String,
   output: Option<Egg>,
@@ -39,6 +50,12 @@ impl EngineOutput {
   }
   pub fn output(&self) -> &Option<Egg> {
     &self.output
+  }
+}
+
+impl EngineOutput {
+  pub fn new(id: String, output: Option<Egg>) -> EngineOutput {
+    EngineOutput { id, output }
   }
 }
 
@@ -136,10 +153,7 @@ impl Engine {
       task::block_on(async move {
         input
           .sender()
-          .send(EngineOutput {
-            id: input.id().clone(),
-            output,
-          })
+          .send(EngineOutput::new(input.id().clone(), output))
           .await
       })?;
       log::trace!("Output sent");
@@ -192,11 +206,7 @@ mod tests {
     let command = parse_command(command).unwrap();
     let (sender, receiver) = unbounded();
     engine_sender
-      .send(EngineInput {
-        id: "1".to_string(),
-        command,
-        sender: sender.clone(),
-      })
+      .send(EngineInput::new("1".to_string(), command, sender.clone()))
       .await
       .unwrap();
     let output = receiver.recv().await.unwrap();
@@ -208,11 +218,7 @@ mod tests {
     let command = format!("GET {}", TEST_KEY);
     let command = parse_command(command).unwrap();
     engine_sender
-      .send(EngineInput {
-        id: "1".to_string(),
-        command,
-        sender,
-      })
+      .send(EngineInput::new("1".to_string(), command, sender))
       .await
       .unwrap();
     let output = receiver.recv().await.unwrap();

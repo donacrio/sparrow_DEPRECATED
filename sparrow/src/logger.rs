@@ -18,7 +18,7 @@ pub const BACKSPACE_CHARACTER: &str = "\x08";
 /// Initialize the logger.
 pub fn init() {
   let env = env_logger::Env::default()
-    .filter_or("LOG_LEVEL", "trace")
+    .filter_or("LOG_LEVEL", "debug")
     .write_style_or("LOG_STYLE", "always");
 
   env_logger::Builder::from_env(env)

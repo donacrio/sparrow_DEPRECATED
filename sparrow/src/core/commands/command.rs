@@ -6,11 +6,10 @@ use crate::core::commands::pop_command::PopCommand;
 use crate::core::egg::Egg;
 use crate::core::errors::Result;
 use crate::core::nest::Nest;
-use sparrow_resp::Data;
 use std::fmt::{Debug, Display};
 
 /// Trait shared by all engine commands.
-pub trait Command: Send + Display + Debug {
+pub trait Command: Send + Sync + Display + Debug {
   /// Execute the command on a given [`Nest`].
   ///
   /// This method is called by [`Engine`] using the `process()` method to pass its [`Nest`].
@@ -48,7 +47,7 @@ pub trait Command: Send + Display + Debug {
 ///
 /// [`Option::Some`]: https://doc.rust-lang.org/std/option/enum.Option.html
 /// [`Option::None`]: https://doc.rust-lang.org/std/option/enum.Option.html
-pub fn parse_command(input: String) -> Result<Box<dyn Command + Send>> {
+pub fn parse_command(input: String) -> Result<Box<dyn Command>> {
   let inputs = input.split(' ').collect::<Vec<&str>>();
   match inputs.get(0) {
     Some(name) => {

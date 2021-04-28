@@ -68,7 +68,7 @@ fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
   log::info!("Setting up engine");
   let mut engine = Engine::new();
   let engine_sender = engine.init();
-  log::trace!("Engine set up");
+  log::debug!("Engine set up");
 
   // Run the engine
   log::info!("Starting engine thread");
@@ -76,7 +76,9 @@ fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
 
   // Run the TCP server
   log::info!("Starting TCP server");
-  run_tcp_server(config.tcp_server_port, engine_sender)?;
+  if let Err(err) = run_tcp_server(config.tcp_server_port, engine_sender) {
+    log::error!("{}", err);
+  }
 
   log::info!("Shutting down Sparrow engine");
   t1.join().unwrap();

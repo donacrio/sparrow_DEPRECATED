@@ -27,8 +27,7 @@ fn decode_inner<'a, R: Read + Unpin>(
 ) -> LocalBoxFuture<'a, Result<Data>> {
   async move {
     let mut buff = Vec::<u8>::new();
-    reader.read_until(CR_BYTE, &mut buff).await?;
-
+    reader.read_until(LF_BYTE, &mut buff).await?;
     if buff.len() < 3 {
       return Err(Error::new(
         ErrorKind::InvalidInput,
@@ -48,7 +47,7 @@ fn decode_inner<'a, R: Read + Unpin>(
     }
 
     let bytes = &buff[1..buff.len() - 2];
-    match &buff[..0] {
+    match &buff[..1] {
       ARRAY_FIRST_BYTE => {
         let n_bytes = parse_integer(bytes)?;
 
@@ -107,7 +106,7 @@ fn decode_inner<'a, R: Read + Unpin>(
       SIMPLE_STRING_FIRST_BYTE => parse_string(bytes).map(Data::SimpleString),
       unknown => Err(Error::new(
         ErrorKind::InvalidInput,
-        format!("Unknown head character: {}", parse_string(unknown)?),
+        format!("Unknown head character: {:?}", parse_string(unknown)),
       )),
     }
   }
