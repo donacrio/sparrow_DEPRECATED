@@ -1,8 +1,8 @@
 //! Core engine managing the database.
 
 use crate::core::commands::parse_command;
-use crate::core::errors::Result;
 use crate::core::nest::Nest;
+use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
 use async_std::channel::{unbounded, Receiver, Sender};
 use async_std::task;
@@ -114,8 +114,10 @@ impl Engine {
 
       log::trace!("Processing input");
       log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, input.id(), input.data());
-      let command = parse_command(input.data())?;
-      let output = command.execute(&mut self.nest);
+      let output = match parse_command(input.data()) {
+        Ok(command) => command.execute(&mut self.nest),
+        Err(err) => Data::Error(format!("{}", err)),
+      };
       log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, input.id(), output);
       log::trace!("Input processed");
 

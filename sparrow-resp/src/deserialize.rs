@@ -18,17 +18,16 @@ pub async fn decode_string(content: String) -> Result<Data> {
 /// Decode a given bytes buffer in the RESP format into an [Data] enum member.
 ///
 /// [Data]: crate::Data
-pub async fn decode<'a, R: Read + Unpin + Send>(reader: &'a mut BufReader<R>) -> Result<Data> {
+pub async fn decode<R: Read + Unpin + Send>(reader: &'_ mut BufReader<R>) -> Result<Data> {
   decode_inner(reader).await
 }
 
-fn decode_inner<'a, R: Read + Unpin + Send>(
-  reader: &'a mut BufReader<R>,
-) -> BoxFuture<'a, Result<Data>> {
+fn decode_inner<R: Read + Unpin + Send>(
+  reader: &'_ mut BufReader<R>,
+) -> BoxFuture<'_, Result<Data>> {
   Box::pin(async move {
     let mut buff = Vec::<u8>::new();
     reader.read_until(LF_BYTE, &mut buff).await?;
-    println!("{:?}", std::str::from_utf8(&buff));
     if buff.len() < 3 {
       return Err(Error::new(
         ErrorKind::InvalidInput,
@@ -73,8 +72,6 @@ fn decode_inner<'a, R: Read + Unpin + Send>(
       }
       BULK_STRING_FIRST_BYTE => {
         let n_bytes = parse_integer(bytes)?;
-        println!("coucou");
-        println!("{}", n_bytes);
         if n_bytes == -1 {
           return Ok(Data::Null);
         }

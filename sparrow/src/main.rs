@@ -25,12 +25,13 @@
 //! [tokio]: tokio
 mod cli;
 mod core;
+mod errors;
 mod logger;
-mod net;
+mod tcp_server;
 
 use crate::cli::{run_cli, Config};
 use crate::core::Engine;
-use crate::net::run_tcp_server;
+use crate::tcp_server::run_tcp_server;
 
 fn main() {
   logger::init();

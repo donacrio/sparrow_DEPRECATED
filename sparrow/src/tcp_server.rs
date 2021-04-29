@@ -1,12 +1,12 @@
 use crate::core::EngineInput;
+use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
-use crate::net::errors::Result;
 use async_std::channel::{unbounded, Sender};
-use async_std::io::BufReader;
+use async_std::io::{BufReader, BufWriter};
 use async_std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use async_std::prelude::*;
 use async_std::task;
-use sparrow_resp::decode;
+use sparrow_resp::{decode, encode, Data};
 
 use std::sync::Arc;
 
@@ -37,7 +37,7 @@ async fn connection_loop(stream: TcpStream, engine_sender: Sender<EngineInput>) 
 
   let stream = Arc::new(stream);
   let mut reader = BufReader::new(&*stream);
-
+  let mut writer = BufWriter::new(&*stream);
   loop {
     let output = match decode(&mut reader).await {
       Ok(input) => {
@@ -47,14 +47,15 @@ async fn connection_loop(stream: TcpStream, engine_sender: Sender<EngineInput>) 
         let input = EngineInput::new(id, input, sender);
         engine_sender.send(input).await?;
         let output = receiver.recv().await?;
-        // TODO: implement display for data
-        format!("{:?}", output)
+        output
       }
       Err(err) => {
         log::error!("{}[{}] {}", BACKSPACE_CHARACTER, id, err);
-        format!("{}", err)
+        Data::Error(format!("{}", err))
       }
     };
-    (&*stream).write_all(output.as_bytes()).await?;
+    log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, id, output);
+    encode(&output, &mut writer).await?;
+    writer.flush().await?;
   }
 }

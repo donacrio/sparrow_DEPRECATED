@@ -7,7 +7,7 @@ use crate::constants::{
 use crate::data::Data;
 use async_std::io::{BufWriter, Write};
 use async_std::prelude::*;
-use futures::future::{FutureExt, LocalBoxFuture};
+use futures::future::BoxFuture;
 use std::io::Result;
 
 /// Encode a given string in the RESP format to a bytes buffer.
@@ -16,7 +16,7 @@ use std::io::Result;
 /// This function is mostly used to encode commands made to the Sparrow engine.
 pub async fn encode_string<W>(content: String, writer: &mut BufWriter<W>) -> Result<()>
 where
-  W: Write + Unpin,
+  W: Write + Unpin + Send,
 {
   encode(&Data::BulkString(content), writer).await
 }
@@ -26,7 +26,7 @@ where
 /// [Data]: crate::Data
 pub async fn encode<W>(data: &Data, writer: &mut BufWriter<W>) -> Result<()>
 where
-  W: Write + Unpin,
+  W: Write + Unpin + Send,
 {
   encode_inner(data, writer).await
 }
@@ -34,14 +34,11 @@ where
 /// Encode a given [Data] enum member in the RESP format and append to a given bytes buffer.
 ///
 /// [Data]: crate::Data
-fn encode_inner<'a, W>(
-  data: &'a Data,
-  writer: &'a mut BufWriter<W>,
-) -> LocalBoxFuture<'a, Result<()>>
+fn encode_inner<'a, W>(data: &'a Data, writer: &'a mut BufWriter<W>) -> BoxFuture<'a, Result<()>>
 where
-  W: Write + Unpin,
+  W: Write + Unpin + Send,
 {
-  async move {
+  Box::pin(async move {
     match data {
       Data::Array(array) => {
         writer.write(ARRAY_FIRST_BYTE).await?;
@@ -83,8 +80,7 @@ where
       }
     };
     Ok(())
-  }
-  .boxed_local()
+  })
 }
 
 #[cfg(test)]

@@ -3,8 +3,8 @@
 use crate::core::commands::get_command::GetCommand;
 use crate::core::commands::rem_command::RemCommand;
 use crate::core::commands::set_command::SetCommand;
-use crate::core::errors::Result;
 use crate::core::nest::Nest;
+use crate::errors::Result;
 use sparrow_resp::Data;
 use std::fmt::{Debug, Display};
 
@@ -53,7 +53,7 @@ pub fn parse_command(input: &Data) -> Result<Box<dyn Command>> {
 ///
 /// [`Option::Some`]: https://doc.rust-lang.org/std/option/enum.Option.html
 /// [`Option::None`]: https://doc.rust-lang.org/std/option/enum.Option.html
-fn parse_string_command(input: &String) -> Result<Box<dyn Command>> {
+fn parse_string_command(input: &str) -> Result<Box<dyn Command>> {
   let inputs = input.split(' ').collect::<Vec<&str>>();
   match inputs.get(0) {
     Some(name) => {
