@@ -2,16 +2,17 @@ use crate::core::commands::Command;
 use crate::core::egg::Egg;
 use crate::core::errors::Result;
 use crate::core::nest::Nest;
+use sparrow_resp::Data;
 use std::fmt;
 
 /// Engine INSERT command.
 #[derive(Clone, Debug)]
-pub struct InsertCommand {
+pub struct SetCommand {
   key: String,
   value: String,
 }
 
-impl InsertCommand {
+impl SetCommand {
   /// Return a new [`InsertCommand`].
   ///
   /// # Arguments
@@ -28,19 +29,19 @@ impl InsertCommand {
   /// ```
   ///
   /// [`GetCommand`]: crate::core::commands::get_command::GetCommand
-  pub fn new(args: &[&str]) -> Result<InsertCommand> {
+  pub fn new(args: &[&str]) -> Result<SetCommand> {
     match args.len() {
       2 => {
         let key = args.get(0).unwrap();
         let value = args.get(1).unwrap();
-        Ok(InsertCommand {
+        Ok(SetCommand {
           key: key.to_string(),
           value: value.to_string(),
         })
       }
       n => Err(
         format!(
-          "Cannot parse INSERT command arguments: Wrong number of arguments. Expected 2, got {}.",
+          "Cannot parse SET command arguments: Wrong number of arguments. Expected 2, got {}.",
           n
         )
         .into(),
@@ -49,27 +50,29 @@ impl InsertCommand {
   }
 }
 
-impl fmt::Display for InsertCommand {
+impl fmt::Display for SetCommand {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "INSERT {{{}}} {{{}}}", self.key, self.value)
+    write!(f, "SET {} {}", self.key, self.value)
   }
 }
 
-impl Command for InsertCommand {
+impl Command for SetCommand {
   /// Execute the `INSERT key value` command on a given [`Nest`].
   ///
   /// [`Nest`]: crate::core::Nest
-  fn execute(&self, nest: &mut Nest) -> Option<Egg> {
-    nest.insert(Egg::new(&self.key, &self.value))
+  fn execute(&self, nest: &mut Nest) -> Data {
+    nest.insert(Egg::new(&self.key, &self.value));
+    Data::SimpleString("OK".to_string())
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::core::commands::insert_command::InsertCommand;
+  use crate::core::commands::set_command::SetCommand;
   use crate::core::commands::Command;
   use crate::core::nest::Nest;
   use rstest::*;
+  use sparrow_resp::Data;
 
   const TEST_KEY: &str = "My key";
   const TEST_VALUE: &str = "This is a test value!";
@@ -82,38 +85,38 @@ mod tests {
   #[test]
   fn test_command_new_2_args() {
     let args = &vec![TEST_KEY, TEST_VALUE];
-    let command = InsertCommand::new(args).unwrap();
+    let command = SetCommand::new(args).unwrap();
     assert_eq!(command.key, TEST_KEY);
     assert_eq!(command.value, TEST_VALUE);
   }
 
   #[test]
   #[should_panic(
-    expected = "Cannot parse INSERT command arguments: Wrong number of arguments. Expected 2, got 0."
+    expected = "Cannot parse SET command arguments: Wrong number of arguments. Expected 2, got 0."
   )]
   fn test_command_new_0_args() {
     let args = &vec![];
-    InsertCommand::new(args).unwrap();
+    SetCommand::new(args).unwrap();
   }
 
   #[test]
   #[should_panic(
-    expected = "Cannot parse INSERT command arguments: Wrong number of arguments. Expected 2, got 3."
+    expected = "Cannot parse SET command arguments: Wrong number of arguments. Expected 2, got 3."
   )]
   fn test_command_new_3_args() {
     let args = &vec![TEST_KEY, TEST_VALUE, TEST_VALUE];
-    InsertCommand::new(args).unwrap();
+    SetCommand::new(args).unwrap();
   }
 
   #[rstest]
   fn test_command_execute(mut nest: Nest) {
     let args = &vec![TEST_KEY, TEST_VALUE];
-    let command = Box::new(InsertCommand::new(args).unwrap());
+    let set_command = Box::new(SetCommand::new(args).unwrap());
 
-    let egg = command.execute(&mut nest);
-    assert!(egg.is_none());
+    let data = set_command.execute(&mut nest);
+    assert_eq!(data, Data::SimpleString("OK".to_string()));
 
-    let egg = command.execute(&mut nest).unwrap();
+    let egg = nest.get(TEST_KEY).unwrap();
     assert_eq!(egg.key(), TEST_KEY);
     assert_eq!(egg.value(), TEST_VALUE);
   }

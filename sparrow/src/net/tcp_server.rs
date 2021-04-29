@@ -1,14 +1,13 @@
-use crate::core::commands::parse_command;
 use crate::core::EngineInput;
 use crate::logger::BACKSPACE_CHARACTER;
 use crate::net::errors::Result;
 use async_std::channel::{unbounded, Sender};
-use async_std::{
-  io::BufReader,
-  net::{TcpListener, TcpStream, ToSocketAddrs},
-  prelude::*,
-  task,
-};
+use async_std::io::BufReader;
+use async_std::net::{TcpListener, TcpStream, ToSocketAddrs};
+use async_std::prelude::*;
+use async_std::task;
+use sparrow_resp::decode;
+
 use std::sync::Arc;
 
 pub fn run_tcp_server(port: u16, engine_sender: Sender<EngineInput>) -> Result<()> {
@@ -37,30 +36,25 @@ async fn connection_loop(stream: TcpStream, engine_sender: Sender<EngineInput>) 
   let (sender, receiver) = unbounded();
 
   let stream = Arc::new(stream);
-  let reader = BufReader::new(&*stream);
-  let mut lines = reader.lines();
+  let mut reader = BufReader::new(&*stream);
 
-  while let Some(line) = lines.next().await {
-    let line = line?;
-    let id = id.clone();
-    log::debug!("{}[{}] Parsing input: {}", BACKSPACE_CHARACTER, id, line);
-    let data = match parse_command(line) {
-      Ok(command) => {
-        log::info!("{}[{}] {}", BACKSPACE_CHARACTER, id, command);
+  loop {
+    let output = match decode(&mut reader).await {
+      Ok(input) => {
+        let id = id.clone();
+        log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, id, input);
         let sender = sender.clone();
-
-        let input = EngineInput::new(id, command, sender);
-
+        let input = EngineInput::new(id, input, sender);
         engine_sender.send(input).await?;
         let output = receiver.recv().await?;
-        format!("{:?}", output.output())
+        // TODO: implement display for data
+        format!("{:?}", output)
       }
       Err(err) => {
         log::error!("{}[{}] {}", BACKSPACE_CHARACTER, id, err);
         format!("{}", err)
       }
     };
-    (&*stream).write_all(data.as_bytes()).await?;
+    (&*stream).write_all(output.as_bytes()).await?;
   }
-  Ok(())
 }

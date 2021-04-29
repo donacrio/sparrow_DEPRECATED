@@ -1,27 +1,23 @@
 //! Core engine managing the database.
 
-use crate::core::commands::Command;
-use crate::core::egg::Egg;
+use crate::core::commands::parse_command;
 use crate::core::errors::Result;
 use crate::core::nest::Nest;
 use crate::logger::BACKSPACE_CHARACTER;
 use async_std::channel::{unbounded, Receiver, Sender};
 use async_std::task;
+use sparrow_resp::Data;
 
 /// Input send to the engine through an input sender.
 pub struct EngineInput {
   id: String,
-  command: Box<dyn Command>,
-  sender: Sender<EngineOutput>,
+  data: Data,
+  sender: Sender<Data>,
 }
 
 impl EngineInput {
-  pub fn new(id: String, command: Box<dyn Command>, sender: Sender<EngineOutput>) -> EngineInput {
-    EngineInput {
-      id,
-      command,
-      sender,
-    }
+  pub fn new(id: String, data: Data, sender: Sender<Data>) -> EngineInput {
+    EngineInput { id, data, sender }
   }
 }
 
@@ -29,33 +25,11 @@ impl EngineInput {
   pub fn id(&self) -> &String {
     &self.id
   }
-  pub fn command(&self) -> &Box<dyn Command> {
-    &self.command
+  pub fn data(&self) -> &Data {
+    &self.data
   }
-  pub fn sender(&self) -> &Sender<EngineOutput> {
+  pub fn sender(&self) -> &Sender<Data> {
     &self.sender
-  }
-}
-
-/// Output send from the engine through the output sender.
-#[derive(Debug)]
-pub struct EngineOutput {
-  id: String,
-  output: Option<Egg>,
-}
-
-impl EngineOutput {
-  pub fn id(&self) -> &String {
-    &self.id
-  }
-  pub fn output(&self) -> &Option<Egg> {
-    &self.output
-  }
-}
-
-impl EngineOutput {
-  pub fn new(id: String, output: Option<Egg>) -> EngineOutput {
-    EngineOutput { id, output }
   }
 }
 
@@ -139,23 +113,14 @@ impl Engine {
       log::trace!("Received input");
 
       log::trace!("Processing input");
-      log::info!(
-        "{}[{}] {}",
-        BACKSPACE_CHARACTER,
-        input.id(),
-        input.command()
-      );
-      let output = input.command().execute(&mut self.nest);
+      log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, input.id(), input.data());
+      let command = parse_command(input.data())?;
+      let output = command.execute(&mut self.nest);
       log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, input.id(), output);
       log::trace!("Input processed");
 
       log::trace!("Sending output");
-      task::block_on(async move {
-        input
-          .sender()
-          .send(EngineOutput::new(input.id().clone(), output))
-          .await
-      })?;
+      task::block_on(async move { input.sender().send(output).await })?;
       log::trace!("Output sent");
     }
   }
@@ -163,11 +128,10 @@ impl Engine {
 
 #[cfg(test)]
 mod tests {
-  use crate::core::commands::parse_command;
-  use crate::core::egg::Egg;
   use crate::core::{Engine, EngineInput};
   use async_std::channel::unbounded;
   use rstest::*;
+  use sparrow_resp::Data;
 
   const TEST_KEY: &str = "key";
   const TEST_VALUE: &str = "value";
@@ -175,11 +139,6 @@ mod tests {
   #[fixture]
   fn engine() -> Engine {
     Engine::new()
-  }
-
-  #[fixture]
-  fn egg() -> Egg {
-    Egg::new(TEST_KEY, TEST_VALUE)
   }
 
   #[test]
@@ -194,7 +153,7 @@ mod tests {
 
   #[rstest]
   #[async_std::test]
-  async fn test_run_engine(mut engine: Engine, egg: Egg) {
+  async fn test_run_engine(mut engine: Engine) {
     let engine_sender = engine.init();
     std::thread::spawn(move || {
       engine.run().unwrap();
@@ -202,27 +161,23 @@ mod tests {
 
     // Send input insert to engine
     // Result should be None because there is no egg for this value
-    let command = format!("INSERT {} {}", TEST_KEY, TEST_VALUE);
-    let command = parse_command(command).unwrap();
+    let data = Data::BulkString(format!("SET {} {}", TEST_KEY, TEST_VALUE));
     let (sender, receiver) = unbounded();
     engine_sender
-      .send(EngineInput::new("1".to_string(), command, sender.clone()))
+      .send(EngineInput::new("1".to_string(), data, sender.clone()))
       .await
       .unwrap();
     let output = receiver.recv().await.unwrap();
-    assert_eq!(output.id(), "1");
-    assert!(output.output().is_none());
+    assert_eq!(output, Data::SimpleString("OK".to_string()));
 
     // Send input get to engine
     // Result should be the previously inserted egg
-    let command = format!("GET {}", TEST_KEY);
-    let command = parse_command(command).unwrap();
+    let data = Data::BulkString(format!("GET {}", TEST_KEY));
     engine_sender
-      .send(EngineInput::new("1".to_string(), command, sender))
+      .send(EngineInput::new("1".to_string(), data, sender))
       .await
       .unwrap();
     let output = receiver.recv().await.unwrap();
-    assert_eq!(output.id(), "1");
-    assert_eq!(output.output().clone().unwrap(), egg);
+    assert_eq!(output, Data::BulkString(TEST_VALUE.to_string()));
   }
 }

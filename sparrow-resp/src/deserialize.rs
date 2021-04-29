@@ -7,7 +7,7 @@ use crate::constants::{
 use crate::data::Data;
 use async_std::io::{BufReader, Read};
 use async_std::prelude::*;
-use futures::future::{FutureExt, LocalBoxFuture};
+use futures::future::BoxFuture;
 use std::io::{Error, ErrorKind, Result};
 
 /// Decode a given string in the RESP format.
@@ -18,16 +18,17 @@ pub async fn decode_string(content: String) -> Result<Data> {
 /// Decode a given bytes buffer in the RESP format into an [Data] enum member.
 ///
 /// [Data]: crate::Data
-pub async fn decode<'a, R: Read + Unpin>(reader: &'a mut BufReader<R>) -> Result<Data> {
+pub async fn decode<'a, R: Read + Unpin + Send>(reader: &'a mut BufReader<R>) -> Result<Data> {
   decode_inner(reader).await
 }
 
-fn decode_inner<'a, R: Read + Unpin>(
+fn decode_inner<'a, R: Read + Unpin + Send>(
   reader: &'a mut BufReader<R>,
-) -> LocalBoxFuture<'a, Result<Data>> {
-  async move {
+) -> BoxFuture<'a, Result<Data>> {
+  Box::pin(async move {
     let mut buff = Vec::<u8>::new();
     reader.read_until(LF_BYTE, &mut buff).await?;
+    println!("{:?}", std::str::from_utf8(&buff));
     if buff.len() < 3 {
       return Err(Error::new(
         ErrorKind::InvalidInput,
@@ -72,7 +73,8 @@ fn decode_inner<'a, R: Read + Unpin>(
       }
       BULK_STRING_FIRST_BYTE => {
         let n_bytes = parse_integer(bytes)?;
-
+        println!("coucou");
+        println!("{}", n_bytes);
         if n_bytes == -1 {
           return Ok(Data::Null);
         }
@@ -109,8 +111,7 @@ fn decode_inner<'a, R: Read + Unpin>(
         format!("Unknown head character: {:?}", parse_string(unknown)),
       )),
     }
-  }
-  .boxed_local()
+  })
 }
 fn is_crlf(x: u8, y: u8) -> bool {
   x == CR_BYTE && y == LF_BYTE
