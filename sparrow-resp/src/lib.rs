@@ -7,6 +7,7 @@ mod data;
 mod deserialize;
 mod serialize;
 
+pub use constants::RESPONSE_MAX_SIZE;
 pub use data::Data;
 pub use deserialize::{decode, decode_string};
 pub use serialize::{encode, encode_string};

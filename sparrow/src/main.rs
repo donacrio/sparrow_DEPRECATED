@@ -25,21 +25,21 @@
 //! [tokio]: tokio
 mod cli;
 mod core;
+mod errors;
 mod logger;
-mod net;
+mod tcp_server;
 
 use crate::cli::{run_cli, Config};
 use crate::core::Engine;
-use crate::net::run_tcp_server;
+use crate::tcp_server::run_tcp_server;
 
-#[tokio::main]
-async fn main() {
+fn main() {
   logger::init();
 
   match run_cli() {
     Ok(config) => match config {
       Some(config) => {
-        if let Err(err) = run(config).await {
+        if let Err(err) = run(config) {
           log::error!("{}", err);
           std::process::exit(1);
         };
@@ -54,7 +54,7 @@ async fn main() {
   };
 }
 
-async fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
+fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
   log::info!("Using config: {:?}", config);
 
   // take_hook() returns the default hook in case when a custom one is not set
@@ -68,8 +68,8 @@ async fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
   // Create a new engine
   log::info!("Setting up engine");
   let mut engine = Engine::new();
-  let (sender, bus) = engine.init(config.tcp_server_max_connections);
-  log::trace!("Engine set up");
+  let engine_sender = engine.init();
+  log::debug!("Engine set up");
 
   // Run the engine
   log::info!("Starting engine thread");
@@ -77,13 +77,9 @@ async fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
 
   // Run the TCP server
   log::info!("Starting TCP server");
-  run_tcp_server(
-    config.tcp_server_port,
-    config.tcp_server_max_connections,
-    sender,
-    &bus,
-  )
-  .await?;
+  if let Err(err) = run_tcp_server(config.tcp_server_port, engine_sender) {
+    log::error!("{}", err);
+  }
 
   log::info!("Shutting down Sparrow engine");
   t1.join().unwrap();

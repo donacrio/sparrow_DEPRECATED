@@ -13,10 +13,25 @@ repos:
       - id: sort-simple-yaml
       - id: trailing-whitespace
 
-  - repo: https://github.com/doublify/pre-commit-rust
-    rev: master
+  - repo: local
     hooks:
-      - id: fmt
-      - id: cargo-check
-      - id: clippy
-        args: ["--workspace", "--verbose", "--", "-D", "warnings"]
+      - id: cargo-fmt
+        name: Run cargo fmt
+        language: system
+        types: [file, rust]
+        entry: cargo fmt -- --check
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: Run cargo clippy
+        language: system
+        types: [file, rust]
+        entry: cargo clippy --workspace --verbose -- -D warnings
+        pass_filenames: false
+
+      - id: cargo-test
+        name: Run cargo test
+        language: system
+        types: [file, rust]
+        entry: cargo test
+        pass_filenames: false

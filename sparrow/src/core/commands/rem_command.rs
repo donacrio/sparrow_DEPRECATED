@@ -1,43 +1,43 @@
 use crate::core::commands::Command;
-use crate::core::egg::Egg;
-use crate::core::errors::Result;
 use crate::core::nest::Nest;
+use crate::errors::Result;
+use sparrow_resp::Data;
 use std::fmt;
 
-/// Engine POP command.
+/// Engine REM command.
 #[derive(Clone, Debug)]
-pub struct PopCommand {
+pub struct RemCommand {
   key: String,
 }
 
-impl PopCommand {
-  /// Return a new [`PopCommand`].
+impl RemCommand {
+  /// Return a new [`RemCommand`].
   ///
   /// # Arguments
   /// * `args` - Arguments of this command. There should be 1 argument (key).
   ///
   /// # Examples
   /// ```rust
-  /// use crate::core::commands::PopCommand;
+  /// use crate::core::commands::RemCommand;
   ///
-  /// let args = &vec!["my key"];
-  /// let cmd = PopCommand::new(args).unwrap();
+  /// let args = &vec!["key"];
+  /// let cmd = RemCommand::new(args).unwrap();
   ///
-  /// assert_eq!(format!("{}", cmd), "POP {my key}");
+  /// assert_eq!(format!("{}", cmd), "REM key");
   /// ```
   ///
-  /// [`PopCommand`]: crate::core::commands::PopCommand
-  pub fn new(args: &[&str]) -> Result<PopCommand> {
+  /// [`RemCommand`]: crate::core::commands::RemCommand
+  pub fn new(args: &[&str]) -> Result<RemCommand> {
     match args.len() {
       1 => {
         let key = args.get(0).unwrap();
-        Ok(PopCommand {
+        Ok(RemCommand {
           key: key.to_string(),
         })
       }
       n => Err(
         format!(
-          "Cannot parse POP command arguments: Wrong number of arguments. Expected 1, got {}.",
+          "Cannot parse REM command arguments: Wrong number of arguments. Expected 1, got {}.",
           n
         )
         .into(),
@@ -46,28 +46,30 @@ impl PopCommand {
   }
 }
 
-impl fmt::Display for PopCommand {
+impl fmt::Display for RemCommand {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "POP {{{}}}", self.key)
+    write!(f, "REM {}", self.key)
   }
 }
 
-impl Command for PopCommand {
+impl Command for RemCommand {
   /// Execute the `POP key` command on a given [`Nest`].
   ///
   /// [`Nest`]: crate::core::Nest
-  fn execute(&self, nest: &mut Nest) -> Option<Egg> {
-    nest.pop(&self.key)
+  fn execute(&self, nest: &mut Nest) -> Data {
+    nest.rem(&self.key);
+    Data::SimpleString("OK".to_string())
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::core::commands::pop_command::PopCommand;
+  use crate::core::commands::rem_command::RemCommand;
   use crate::core::commands::Command;
   use crate::core::egg::Egg;
   use crate::core::nest::Nest;
   use rstest::*;
+  use sparrow_resp::Data;
 
   const TEST_KEY: &str = "My key";
   const TEST_VALUE: &str = "This is a test value!";
@@ -80,40 +82,39 @@ mod tests {
   #[test]
   fn test_command_new_1_args() {
     let args = &vec![TEST_KEY];
-    let command = PopCommand::new(args).unwrap();
+    let command = RemCommand::new(args).unwrap();
     assert_eq!(command.key, TEST_KEY)
   }
 
   #[test]
   #[should_panic(
-    expected = "Cannot parse POP command arguments: Wrong number of arguments. Expected 1, got 0."
+    expected = "Cannot parse REM command arguments: Wrong number of arguments. Expected 1, got 0."
   )]
   fn test_command_new_0_args() {
     let args = &vec![];
-    PopCommand::new(args).unwrap();
+    RemCommand::new(args).unwrap();
   }
 
   #[test]
   #[should_panic(
-    expected = "Cannot parse POP command arguments: Wrong number of arguments. Expected 1, got 2."
+    expected = "Cannot parse REM command arguments: Wrong number of arguments. Expected 1, got 2."
   )]
   fn test_command_new_2_args() {
     let args = &vec![TEST_KEY, TEST_VALUE];
-    PopCommand::new(args).unwrap();
+    RemCommand::new(args).unwrap();
   }
 
   #[rstest]
   fn test_command_execute(mut nest: Nest) {
     let args = &vec![TEST_KEY];
-    let command = Box::new(PopCommand::new(args).unwrap());
+    let command = Box::new(RemCommand::new(args).unwrap());
 
-    let egg = command.execute(&mut nest);
-    assert!(egg.is_none());
+    let data = command.execute(&mut nest);
+    assert_eq!(data, Data::SimpleString("OK".to_string()));
 
     nest.insert(Egg::new(TEST_KEY, TEST_VALUE));
-    let egg = command.execute(&mut nest).unwrap();
-    assert_eq!(egg.key(), TEST_KEY);
-    assert_eq!(egg.value(), TEST_VALUE);
+    let data = command.execute(&mut nest);
+    assert_eq!(data, Data::SimpleString("OK".to_string()));
 
     let egg = nest.get(TEST_KEY);
     assert!(egg.is_none());

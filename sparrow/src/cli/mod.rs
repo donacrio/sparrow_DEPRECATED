@@ -6,7 +6,7 @@ mod parameters;
 
 pub use crate::cli::config::Config;
 
-use crate::cli::constants::{ENV_FILEPATH, HELP, TCP_SERVER_MAX_CONNECTIONS, TCP_SERVER_PORT};
+use crate::cli::constants::{ENV_FILEPATH, HELP, TCP_SERVER_PORT};
 use getopts::Options;
 use std::env;
 
@@ -67,7 +67,7 @@ pub fn run_cli() -> Result<Option<Config>, Box<dyn std::error::Error>> {
 fn get_opts() -> Options {
   let mut opts = Options::new();
   // Add options to parse here
-  for option in vec![ENV_FILEPATH, TCP_SERVER_MAX_CONNECTIONS, TCP_SERVER_PORT] {
+  for option in vec![ENV_FILEPATH, TCP_SERVER_PORT] {
     opts.optopt(
       option.short_name,
       option.long_name,

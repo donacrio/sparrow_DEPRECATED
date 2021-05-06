@@ -1,18 +1,37 @@
 //! Core engine managing the database.
 
-use crate::core::commands::Command;
-use crate::core::egg::Egg;
-use crate::core::errors::Result;
-use crate::core::message::Message;
+use crate::core::commands::parse_command;
 use crate::core::nest::Nest;
+use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
-use std::sync::mpsc;
-use std::sync::{Arc, Mutex};
+use async_std::channel::{unbounded, Receiver, Sender};
+use async_std::task;
+use sparrow_resp::Data;
 
 /// Input send to the engine through an input sender.
-pub type EngineInput = Message<Box<dyn Command>>;
-/// Output send from the engine through the output consumer.
-pub type EngineOutput = Message<Option<Egg>>;
+pub struct EngineInput {
+  id: String,
+  data: Data,
+  sender: Sender<Data>,
+}
+
+impl EngineInput {
+  pub fn new(id: String, data: Data, sender: Sender<Data>) -> EngineInput {
+    EngineInput { id, data, sender }
+  }
+}
+
+impl EngineInput {
+  pub fn id(&self) -> &String {
+    &self.id
+  }
+  pub fn data(&self) -> &Data {
+    &self.data
+  }
+  pub fn sender(&self) -> &Sender<Data> {
+    &self.sender
+  }
+}
 
 /// Engine that manages the in-memory state and database operations.
 ///
@@ -37,11 +56,7 @@ pub struct Engine {
   /// [`mpsc`] consumer queue used to retrieve inputs for the engine.
   ///
   /// [`mpsc`]: https://doc.rust-lang.org/std/sync/mpsc/
-  queue: Option<mpsc::Receiver<EngineInput>>,
-  /// [`mpsc`] bus used to broadcast outputs outputs from the engine to the listening receivers.
-  ///
-  /// [`mpsc`]: https://doc.rust-lang.org/std/sync/mpsc/
-  bus: Option<Arc<Mutex<bus::Bus<EngineOutput>>>>,
+  inputs: Option<Receiver<EngineInput>>,
 }
 
 impl Engine {
@@ -51,8 +66,7 @@ impl Engine {
   pub fn new() -> Engine {
     Engine {
       nest: Nest::new(),
-      queue: None,
-      bus: None,
+      inputs: None,
     }
   }
 }
@@ -68,21 +82,12 @@ impl Engine {
   ///
   /// Instantiate an return the input and output producers and consumers
   /// use to communicate with the engine through threads.
-  pub fn init(
-    &mut self,
-    engine_output_bus_size: usize,
-  ) -> (
-    mpsc::Sender<EngineInput>,
-    Arc<Mutex<bus::Bus<EngineOutput>>>,
-  ) {
+  pub fn init(&mut self) -> Sender<EngineInput> {
     log::trace!("Initializing engine");
-    log::trace!("Creating engine input and output channels");
-    let (input_sender, input_receiver) = mpsc::channel::<EngineInput>();
-    self.queue = Some(input_receiver);
-    self.bus = Some(Arc::new(Mutex::new(bus::Bus::new(engine_output_bus_size))));
-    log::trace!("Created engine input and output channels");
+    let (input_sender, input_receiver) = unbounded();
+    self.inputs = Some(input_receiver);
     log::trace!("Engine initialized");
-    (input_sender, self.bus.as_ref().unwrap().clone())
+    input_sender
   }
 
   /// Run the engine.
@@ -97,48 +102,38 @@ impl Engine {
   /// [`EngineOutput`]: crate::core::EngineOutput
   pub fn run(&mut self) -> Result<()> {
     loop {
-      let queue = self
-        .queue
+      let inputs = self
+        .inputs
         .as_ref()
-        .ok_or("Sparrow engine is not initialized")?;
+        .ok_or("Sparrow engine is not initialized")?
+        .clone();
 
       log::trace!("Waiting for engine input");
-      let input = queue.recv()?;
+      let input = task::block_on(async move { inputs.recv().await })?;
       log::trace!("Received input");
 
       log::trace!("Processing input");
-      let output = self.process(input);
+      log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, input.id(), input.data());
+      let output = match parse_command(input.data()) {
+        Ok(command) => command.execute(&mut self.nest),
+        Err(err) => Data::Error(format!("{}", err)),
+      };
+      log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, input.id(), output);
       log::trace!("Input processed");
 
       log::trace!("Sending output");
-      let bus = self
-        .bus
-        .as_mut()
-        .ok_or("Sparrow engine is not initialized")?;
-      bus.lock().unwrap().broadcast(output);
+      task::block_on(async move { input.sender().send(output).await })?;
       log::trace!("Output sent");
     }
-  }
-
-  /// Process an [`EngineInput`].
-  ///
-  /// [`EngineInput`]: crate::core::EngineInput
-  fn process(&mut self, input: EngineInput) -> EngineOutput {
-    let id = input.id();
-    let command = input.content();
-    log::info!("{}[{}] {}", BACKSPACE_CHARACTER, id, command);
-    let output = command.execute(&mut self.nest);
-    log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, id, output);
-    EngineOutput::new(id, output)
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::core::commands::parse_command;
-  use crate::core::egg::Egg;
   use crate::core::{Engine, EngineInput};
+  use async_std::channel::unbounded;
   use rstest::*;
+  use sparrow_resp::Data;
 
   const TEST_KEY: &str = "key";
   const TEST_VALUE: &str = "value";
@@ -148,11 +143,6 @@ mod tests {
     Engine::new()
   }
 
-  #[fixture]
-  fn egg() -> Egg {
-    Egg::new(TEST_KEY, TEST_VALUE)
-  }
-
   #[test]
   fn test_engine_new() {
     Engine::new();
@@ -160,33 +150,36 @@ mod tests {
 
   #[rstest]
   fn test_engine_init(mut engine: Engine) {
-    engine.init(256);
+    engine.init();
   }
 
   #[rstest]
-  fn test_run_engine(mut engine: Engine, egg: Egg) {
-    let (sender, bus) = engine.init(256);
-    let mut receiver = bus.lock().unwrap().add_rx();
+  #[async_std::test]
+  async fn test_run_engine(mut engine: Engine) {
+    let engine_sender = engine.init();
     std::thread::spawn(move || {
       engine.run().unwrap();
     });
 
     // Send input insert to engine
     // Result should be None because there is no egg for this value
-    let cmd = &format!("INSERT {} {}", TEST_KEY, TEST_VALUE);
-    let cmd = parse_command(cmd).unwrap();
-    sender.send(EngineInput::new(1, cmd)).unwrap();
-    let output = receiver.recv().unwrap();
-    assert_eq!(output.id(), 1);
-    assert!(output.content().is_none());
+    let data = Data::BulkString(format!("SET {} {}", TEST_KEY, TEST_VALUE));
+    let (sender, receiver) = unbounded();
+    engine_sender
+      .send(EngineInput::new("1".to_string(), data, sender.clone()))
+      .await
+      .unwrap();
+    let output = receiver.recv().await.unwrap();
+    assert_eq!(output, Data::SimpleString("OK".to_string()));
 
     // Send input get to engine
     // Result should be the previously inserted egg
-    let cmd = &format!("GET {}", TEST_KEY);
-    let cmd = parse_command(cmd).unwrap();
-    sender.send(EngineInput::new(1, cmd)).unwrap();
-    let output = receiver.recv().unwrap();
-    assert_eq!(output.id(), 1);
-    assert_eq!(output.content().clone().unwrap(), egg);
+    let data = Data::BulkString(format!("GET {}", TEST_KEY));
+    engine_sender
+      .send(EngineInput::new("1".to_string(), data, sender))
+      .await
+      .unwrap();
+    let output = receiver.recv().await.unwrap();
+    assert_eq!(output, Data::BulkString(TEST_VALUE.to_string()));
   }
 }

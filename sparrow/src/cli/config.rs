@@ -1,6 +1,6 @@
 //! Config struct used to parse environment variable and CLI parameters.
 
-use crate::cli::constants::{TCP_SERVER_MAX_CONNECTIONS, TCP_SERVER_PORT};
+use crate::cli::constants::TCP_SERVER_PORT;
 use getopts::Matches;
 use std::env;
 use std::error::Error;
@@ -11,8 +11,6 @@ use std::error::Error;
 pub struct Config {
   /// TCP listening port of Sparrow's Network Interface.
   pub tcp_server_port: u16,
-  /// Maximum number of concurrent connections handled by Sparrow's Network Interface.
-  pub tcp_server_max_connections: usize,
 }
 
 impl Config {
@@ -40,13 +38,8 @@ impl Config {
 
     // Parse environment variables here
     let tcp_server_port: u16 = env::var(TCP_SERVER_PORT.evar_name)?.parse()?;
-    let tcp_server_max_connections: usize =
-      env::var(TCP_SERVER_MAX_CONNECTIONS.evar_name)?.parse()?;
 
-    Ok(Config {
-      tcp_server_port,
-      tcp_server_max_connections,
-    })
+    Ok(Config { tcp_server_port })
   }
 }
 
@@ -56,11 +49,6 @@ impl Config {
     // Parse cli parameters here
     if let Some(tcp_server_port) = matches.opt_str(TCP_SERVER_PORT.long_name) {
       self.tcp_server_port = tcp_server_port.parse()?;
-    };
-
-    if let Some(tcp_server_max_connections) = matches.opt_str(TCP_SERVER_MAX_CONNECTIONS.long_name)
-    {
-      self.tcp_server_max_connections = tcp_server_max_connections.parse()?;
     };
 
     Ok(())

@@ -37,8 +37,8 @@ impl Nest {
   /// * `egg` - [`Egg`] to insert
   ///
   /// [`Egg`]: crate::core::Egg
-  pub fn insert(&mut self, egg: Egg) -> Option<Egg> {
-    self.map.insert(egg.key().clone(), egg)
+  pub fn insert(&mut self, egg: Egg) {
+    self.map.insert(egg.key().clone(), egg);
   }
   /// Get an [`Egg`] from the `map` field
   ///
@@ -55,8 +55,8 @@ impl Nest {
   /// * `key` - Key value of the [`Egg`] to pop
   ///
   /// [`Egg`]: crate::core::Egg
-  pub fn pop(&mut self, key: &str) -> Option<Egg> {
-    self.map.remove(key)
+  pub fn rem(&mut self, key: &str) {
+    self.map.remove(key);
   }
 }
 
@@ -91,9 +91,9 @@ mod tests {
   #[rstest]
   fn test_nest_insert(mut nest: Nest, egg: Egg) {
     // Egg is not in nest
-    assert_eq!(nest.insert(egg.clone()), None);
+    nest.insert(egg.clone());
     // Egg is inserted into the nest and the egg previously associated to its key is returned
-    assert_eq!(nest.insert(egg.clone()), Some(egg));
+    assert_eq!(nest.get(egg.key()), Some(&egg));
   }
 
   #[rstest]
@@ -101,18 +101,20 @@ mod tests {
     // Egg is not in the nest
     assert_eq!(nest.get(egg.key()), None);
     // Egg is inserted into the nest and its key wasn't found
-    assert_eq!(nest.insert(egg.clone()), None);
+    nest.insert(egg.clone());
     // Egg is in the nest and its value is returned
     assert_eq!(nest.get(egg.key()), Some(&egg))
   }
 
   #[rstest]
-  fn test_nest_pop(mut nest: Nest, egg: Egg) {
+  fn test_nest_rem(mut nest: Nest, egg: Egg) {
     // Egg is inserted into the nest and its key wasn't found
-    assert_eq!(nest.insert(egg.clone()), None);
-    // Egg is popped from the nest and returned
-    assert_eq!(nest.pop(egg.key()), Some(egg.clone()));
+    nest.insert(egg.clone());
+    // Egg is in the nest and its value is returned
+    assert_eq!(nest.get(egg.key()), Some(&egg));
+    // Egg is removed from the nest
+    nest.rem(egg.key());
     // Egg is not in the nest
-    assert_eq!(nest.pop(egg.key()), None);
+    assert_eq!(nest.get(egg.key()), None);
   }
 }

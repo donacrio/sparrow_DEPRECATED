@@ -1,9 +1,9 @@
 //! Engine GET command.
 //!
 use crate::core::commands::Command;
-use crate::core::egg::Egg;
-use crate::core::errors::Result;
 use crate::core::nest::Nest;
+use crate::errors::Result;
+use sparrow_resp::Data;
 use std::fmt;
 
 /// Engine GET command.
@@ -50,7 +50,7 @@ impl GetCommand {
 
 impl fmt::Display for GetCommand {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "GET {{{}}}", self.key)
+    write!(f, "GET {}", self.key)
   }
 }
 
@@ -58,8 +58,11 @@ impl Command for GetCommand {
   /// Execute the `GET key` command on a given [`Nest`].
   ///
   /// [`Nest`]: crate::core::Nest
-  fn execute(&self, nest: &mut Nest) -> Option<Egg> {
-    nest.get(&self.key).cloned()
+  fn execute(&self, nest: &mut Nest) -> Data {
+    nest
+      .get(&self.key)
+      .map(|egg| Data::BulkString(egg.value().clone()))
+      .unwrap_or(Data::Null)
   }
 }
 
@@ -70,6 +73,7 @@ mod tests {
   use crate::core::egg::Egg;
   use crate::core::nest::Nest;
   use rstest::*;
+  use sparrow_resp::Data;
 
   const TEST_KEY: &str = "My key";
   const TEST_VALUE: &str = "This is a test value!";
@@ -109,12 +113,11 @@ mod tests {
     let args = &vec![TEST_KEY];
     let command = Box::new(GetCommand::new(args).unwrap());
 
-    let egg = command.execute(&mut nest);
-    assert!(egg.is_none());
+    let data = command.execute(&mut nest);
+    assert_eq!(data, Data::Null);
 
     nest.insert(Egg::new(TEST_KEY, TEST_VALUE));
-    let egg = command.execute(&mut nest).unwrap();
-    assert_eq!(egg.key(), TEST_KEY);
-    assert_eq!(egg.value(), TEST_VALUE);
+    let data = command.execute(&mut nest);
+    assert_eq!(data, Data::BulkString(TEST_VALUE.to_string()));
   }
 }
