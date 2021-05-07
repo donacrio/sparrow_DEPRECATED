@@ -10,24 +10,65 @@ use async_std::prelude::*;
 use futures::future::BoxFuture;
 use std::io::{Error, ErrorKind, Result};
 
-/// Decode a given string in the RESP format.
+/// Decode a given [String] into a [Data] enum member.
+///
+/// # Examples
+/// ```rust
+/// # fn main() -> std::io::Result<()> { async_std::task::block_on(async {
+/// #
+/// use sparrow_resp::{Data, decode_string};
+///
+/// let input = String::from("$14\r\nHello Sparrow!\r\n");
+///
+/// let actual = decode_string(input).await?;
+/// let expected = Data::BulkString(String::from("Hello Sparrow!"));
+///
+/// assert_eq!(actual, expected);
+/// #
+/// # Ok(()) }) }
+/// ```
 pub async fn decode_string(content: String) -> Result<Data> {
   decode(&mut BufReader::new(content.as_bytes())).await
 }
 
-/// Decode a given bytes buffer in the RESP format into an [Data] enum member.
+/// Decode a given [BufReader] in the RESP format into a [Data] enum member.
+///
+/// # Examples
+/// ```rust
+/// # fn main() -> std::io::Result<()> { async_std::task::block_on(async {
+/// #
+/// use async_std::io::BufReader;
+/// use sparrow_resp::{Data, decode};
+///
+/// let input = String::from("$14\r\nHello Sparrow!\r\n");
+/// let mut input = BufReader::new(input.as_bytes());
+///
+/// let actual = decode(&mut input).await?;
+/// let expected = Data::BulkString(String::from("Hello Sparrow!"));
+///
+/// assert_eq!(actual, expected);
+/// #
+/// # Ok(()) }) }
+/// ```
 ///
 /// [Data]: crate::Data
+/// [BufReader]: async_std::io::BufReader
 pub async fn decode<R: Read + Unpin + Send>(reader: &'_ mut BufReader<R>) -> Result<Data> {
   decode_inner(reader).await
 }
 
+/// Decode a given [BufReader] in the RESP format into a [Data] enum member.
+///
+/// This function is similar to [decode] and is used to decode the given [BufReader]recursively.
+///
+/// [decode]: crate::deserialize::decode
 fn decode_inner<R: Read + Unpin + Send>(
   reader: &'_ mut BufReader<R>,
 ) -> BoxFuture<'_, Result<Data>> {
-  Box::pin(async move {
+  let fut = async move {
     let mut buff = Vec::<u8>::new();
     reader.read_until(LF_BYTE, &mut buff).await?;
+
     if buff.len() < 3 {
       return Err(Error::new(
         ErrorKind::InvalidInput,
@@ -108,12 +149,18 @@ fn decode_inner<R: Read + Unpin + Send>(
         format!("Unknown head character: {:?}", parse_string(unknown)),
       )),
     }
-  })
+  };
+
+  // Because future size is unknown, it must be allocated on the heap
+  Box::pin(fut)
 }
+
+/// Return a boolean if the given two bytes are describing CRLF.
 fn is_crlf(x: u8, y: u8) -> bool {
   x == CR_BYTE && y == LF_BYTE
 }
 
+/// Parse bytes as a [i64].
 fn parse_integer(bytes: &[u8]) -> Result<i64> {
   parse_string(bytes)?.parse::<i64>().map_err(|err| {
     Error::new(
@@ -123,6 +170,7 @@ fn parse_integer(bytes: &[u8]) -> Result<i64> {
   })
 }
 
+/// Parse bytes as a [String].
 fn parse_string(bytes: &[u8]) -> Result<String> {
   String::from_utf8(bytes.to_vec()).map_err(|err| {
     Error::new(

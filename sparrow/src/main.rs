@@ -39,11 +39,7 @@ fn main() {
   match run_cli() {
     Ok(config) => match config {
       Some(config) => {
-        if let Err(err) = run(config) {
-          log::error!("{}", err);
-          std::process::exit(1);
-        };
-        std::process::exit(0)
+        run(config);
       }
       None => std::process::exit(0),
     },
@@ -54,7 +50,7 @@ fn main() {
   };
 }
 
-fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
+fn run(config: Config) {
   log::info!("Using config: {:?}", config);
 
   // take_hook() returns the default hook in case when a custom one is not set
@@ -84,6 +80,4 @@ fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
   log::info!("Shutting down Sparrow engine");
   t1.join().unwrap();
   log::info!("Sparrow engine successfully shut down");
-
-  Ok(())
 }

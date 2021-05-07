@@ -10,10 +10,29 @@ use async_std::prelude::*;
 use futures::future::BoxFuture;
 use std::io::Result;
 
-/// Encode a given string in the RESP format to a bytes buffer.
+/// Encode a given [String] by writing it to a [BufWriter].
 ///
-/// # Usage
+/// # Example
+/// ```rust
+/// # fn main() -> std::io::Result<()> { async_std::task::block_on(async {
+/// #
+/// use async_std::io::{BufWriter, Cursor};
+/// use async_std::prelude::*;
+/// use sparrow_resp::encode_string;
+///
+/// let input = String::from("Hello Sparrow!");
+/// let buffer = Cursor::new(Vec::new());
+/// let mut writer = BufWriter::new(buffer);
+///
+/// encode_string(input, &mut writer).await?;
+/// writer.flush().await?;
+///
+/// #
+/// # Ok(()) }) }
+/// ```
 /// This function is mostly used to encode commands made to the Sparrow engine.
+///
+/// [BufWriter]: async_std::io::BufWriter
 pub async fn encode_string<W>(content: String, writer: &mut BufWriter<W>) -> Result<()>
 where
   W: Write + Unpin + Send,
@@ -21,9 +40,29 @@ where
   encode(&Data::BulkString(content), writer).await
 }
 
-/// Encode a given [Data] enum member in the RESP format to a bytes buffer.
+/// Encode a given [Data] enum member by writing it to a [BufWriter].
 ///
-/// [Data]: crate::Data
+/// # Example
+/// ```rust
+/// # fn main() -> std::io::Result<()> { async_std::task::block_on(async {
+/// #
+/// use async_std::io::{BufWriter, Cursor};
+/// use async_std::prelude::*;
+/// use sparrow_resp::{Data, encode};
+///
+/// let input = Data::SimpleString(String::from("Hello Sparrow!"));
+/// let buffer = Cursor::new(Vec::new());
+/// let mut writer = BufWriter::new(buffer);
+///
+/// encode(&input, &mut writer).await?;
+/// writer.flush().await?;
+///
+/// #
+/// # Ok(()) }) }
+/// ```
+/// This function is mostly used to encode commands made to the Sparrow engine.
+///
+/// [BufWriter]: async_std::io::BufWriter
 pub async fn encode<W>(data: &Data, writer: &mut BufWriter<W>) -> Result<()>
 where
   W: Write + Unpin + Send,
@@ -31,9 +70,12 @@ where
   encode_inner(data, writer).await
 }
 
-/// Encode a given [Data] enum member in the RESP format and append to a given bytes buffer.
+/// Encode a given [Data] enum member by writing it to a [BufWriter].
+///
+/// This function is similar to [decode] and is used to encode the given [Data] recursively.
 ///
 /// [Data]: crate::Data
+/// [encode]: crate::serialize::encode
 fn encode_inner<'a, W>(data: &'a Data, writer: &'a mut BufWriter<W>) -> BoxFuture<'a, Result<()>>
 where
   W: Write + Unpin + Send,
