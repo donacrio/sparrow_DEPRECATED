@@ -15,7 +15,7 @@ pub struct Egg {
 }
 
 impl Egg {
-  /// Return a new [`Egg`].
+  /// Return a new [Egg].
   ///
   /// # Arguments
   /// * `key` - The key to store

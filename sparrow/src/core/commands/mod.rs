@@ -1,8 +1,6 @@
 //! Engine commands.
 //!
-//! This module is used to define commands that will be executed by the [`Engine`].
-//!
-//! [`Engine`]: crate::core::Engine
+//! This module is used to define commands that will be executed by Sparrow Engine.
 mod command;
 mod get_command;
 mod rem_command;

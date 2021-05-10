@@ -1,6 +1,6 @@
 //! Logging module.
 //!
-//! Provides utilities to setup and parameterize Sparrow's logging using crate [`env_logger`].
+//! Provides utilities to setup and parameterize Sparrow's logging using crate [env_logger].
 //!
 //! The following environment variables are used:
 //! - `LOG_LEVEL`: logging filtering level. Values: `trace`, `debug`(default), `info`, `error`.
@@ -8,7 +8,7 @@
 //!
 //! Logs are formatted using the pattern: `[timestamp][path][level] <message>`
 //!
-//! [`env_logger`]: https://docs.rs/env_logger/*/env_logger/
+//! [env_logger]: https://docs.rs/env_logger/*/env_logger/
 
 use std::io::Write;
 

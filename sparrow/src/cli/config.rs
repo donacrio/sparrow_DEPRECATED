@@ -14,15 +14,13 @@ pub struct Config {
 }
 
 impl Config {
-  /// Load a new default [`Config`] from a .env file.
+  /// Load a new default [Config] from a .env file.
   ///
   /// The .env file path can be specified.
   /// If not provided, the default .env file will be used.Matches
   ///
-  /// **Because this methods loads a default [`Config`],
+  /// **Because this methods loads a default [Config],
   /// all environment variables must be defined in the .env file**
-  ///
-  /// [`Config`]: crate::cli::Config
   pub fn load_env(env_filepath: Option<String>) -> Result<Config, Box<dyn Error>> {
     // Load environment variables from specified .env file
     match env_filepath {

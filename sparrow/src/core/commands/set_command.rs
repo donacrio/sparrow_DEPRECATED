@@ -13,22 +13,20 @@ pub struct SetCommand {
 }
 
 impl SetCommand {
-  /// Return a new [`InsertCommand`].
+  /// Return a new [SetCommand].
   ///
   /// # Arguments
   /// * `args` - Arguments of this command. There should be 2 argument (key, value).
   ///
   /// # Examples
   /// ```rust
-  /// use crate::core::commands::InsertCommand;
+  /// use crate::core::commands::SetCommand;
   ///
   /// let args = &vec!["my key", "some value"];
-  /// let cmd = InsertCommand::new(args).unwrap();
+  /// let cmd = SetCommand::new(args).unwrap();
   ///
-  /// assert_eq!(format!("{}", cmd), "INSERT {my key} {some value}");
+  /// assert_eq!(format!("{}", cmd), "SET {my key} {some value}");
   /// ```
-  ///
-  /// [`GetCommand`]: crate::core::commands::get_command::GetCommand
   pub fn new(args: &[&str]) -> Result<SetCommand> {
     match args.len() {
       2 => {
@@ -57,11 +55,9 @@ impl fmt::Display for SetCommand {
 }
 
 impl Command for SetCommand {
-  /// Execute the `INSERT key value` command on a given [`Nest`].
-  ///
-  /// [`Nest`]: crate::core::Nest
+  /// Execute the `INSERT key value` command on a given [Nest].
   fn execute(&self, nest: &mut Nest) -> Data {
-    nest.insert(Egg::new(&self.key, &self.value));
+    nest.set(Egg::new(&self.key, &self.value));
     Data::SimpleString("OK".to_string())
   }
 }
