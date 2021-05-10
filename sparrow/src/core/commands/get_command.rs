@@ -13,7 +13,7 @@ pub struct GetCommand {
 }
 
 impl GetCommand {
-  /// Return a new [`GetCommand`].
+  /// Return a new [GetCommand].
   ///
   /// # Arguments
   /// * `args` - Arguments of this command. There should be 1 argument (key).
@@ -27,8 +27,6 @@ impl GetCommand {
   ///
   /// assert_eq!(format!("{}", cmd), "GET {my key}");
   /// ```
-  ///
-  /// [`GetCommand`]: crate::core::commands::GetCommand
   pub fn new(args: &[&str]) -> Result<GetCommand> {
     match args.len() {
       1 => {
@@ -55,9 +53,7 @@ impl fmt::Display for GetCommand {
 }
 
 impl Command for GetCommand {
-  /// Execute the `GET key` command on a given [`Nest`].
-  ///
-  /// [`Nest`]: crate::core::Nest
+  /// Execute the `GET key` command on a given [Nest].
   fn execute(&self, nest: &mut Nest) -> Data {
     nest
       .get(&self.key)
@@ -116,7 +112,7 @@ mod tests {
     let data = command.execute(&mut nest);
     assert_eq!(data, Data::Null);
 
-    nest.insert(Egg::new(TEST_KEY, TEST_VALUE));
+    nest.set(Egg::new(TEST_KEY, TEST_VALUE));
     let data = command.execute(&mut nest);
     assert_eq!(data, Data::BulkString(TEST_VALUE.to_string()));
   }

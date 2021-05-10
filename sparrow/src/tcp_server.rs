@@ -14,10 +14,6 @@ use std::sync::Arc;
 ///
 /// This function is blocking and runs [accept_loop] and [connection_loop] with [async_std]
 /// asynchronous backend.Result
-///
-/// [accept_loop]: crate:tcp_server::accept_loop
-/// [connection_loop]: crate:tcp_server::connection_loop
-/// [async_std]: async_std
 pub fn run_tcp_server(port: u16, engine_sender: Sender<EngineInput>) -> Result<()> {
   task::block_on(accept_loop(format!("127.0.0.1:{}", port), engine_sender))
 }
@@ -25,8 +21,6 @@ pub fn run_tcp_server(port: u16, engine_sender: Sender<EngineInput>) -> Result<(
 /// Run tcp socket accept loop.
 ///
 /// An [async-std] async task is spawned for every new connection.
-///
-/// [async-std]: async_std
 async fn accept_loop(addr: impl ToSocketAddrs, engine_sender: Sender<EngineInput>) -> Result<()> {
   let listener = TcpListener::bind(addr).await?;
 
@@ -47,11 +41,6 @@ async fn accept_loop(addr: impl ToSocketAddrs, engine_sender: Sender<EngineInput
 /// Handle a [TcpStream] connection.
 ///
 /// The stream is wrapped into a [BufReader] that is decoded into a [Data] using Sparrow-RESP [decode] function.
-///
-/// [TcpStream]: async_std::net::TcpStream
-/// [BufReader]: async_std::io::BufReader
-/// [decode]: sparrow_resp::decode
-/// [Data]: sparrow_resp::Data
 async fn connection_loop(stream: TcpStream, engine_sender: Sender<EngineInput>) -> Result<()> {
   let id = stream.peer_addr()?.to_string();
   let (sender, receiver) = unbounded();

@@ -10,22 +10,20 @@ use std::fmt::{Debug, Display};
 
 /// Trait shared by all engine commands.
 pub trait Command: Send + Sync + Display + Debug {
-  /// Execute the command on a given [`Nest`].
-  ///
-  /// This method is called by [`Engine`] using the `process()` method to pass its [`Nest`].
+  /// Execute the command on a given [Nest].
   ///
   /// # Arguments
-  /// * `nest` - The nest containing in-memory data. See [`Nest`]
+  /// * `nest` - The nest containing in-memory data. See [Nest]
   ///
   /// # Examples
   /// ```rust
-  /// use crate::core::commands::Command;
+  /// use crate::core::commands::{Command, GetCommand};
+  /// use crate::core::nest::Nest;
   ///
-  ///
+  /// let nest = Nest::new();
+  /// let command = GetCommand::new(&vec!["key"]);
+  /// command.execute(&mut self.nest)
   /// ```
-  ///
-  /// [`Nest`]: crate::core::Nest
-  /// [`Engine`]: crate::core::Engine
   fn execute(&self, nest: &mut Nest) -> Data;
 }
 
@@ -37,7 +35,7 @@ pub fn parse_command(input: &Data) -> Result<Box<dyn Command>> {
 }
 /// Parse a string slice into a command.
 ///
-/// This function returns an [`Option::Some`] containing the Command or [`Option::None`] if the parsed string slice is `"EXIT"`.
+/// This function returns an [Option::Some] containing the Command or [Option::None] if the parsed string slice is `"EXIT"`.
 ///
 /// # Arguments
 /// * `input` - Input string slice to be parsed
@@ -50,9 +48,6 @@ pub fn parse_command(input: &Data) -> Result<Box<dyn Command>> {
 ///
 /// assert_eq!(format!("{}", cmd), "GET {key}");
 /// ```
-///
-/// [`Option::Some`]: https://doc.rust-lang.org/std/option/enum.Option.html
-/// [`Option::None`]: https://doc.rust-lang.org/std/option/enum.Option.html
 fn parse_string_command(input: &str) -> Result<Box<dyn Command>> {
   let inputs = input.split(' ').collect::<Vec<&str>>();
   match inputs.get(0) {

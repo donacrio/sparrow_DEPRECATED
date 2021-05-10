@@ -11,7 +11,7 @@ pub struct RemCommand {
 }
 
 impl RemCommand {
-  /// Return a new [`RemCommand`].
+  /// Return a new [RemCommand].
   ///
   /// # Arguments
   /// * `args` - Arguments of this command. There should be 1 argument (key).
@@ -25,8 +25,6 @@ impl RemCommand {
   ///
   /// assert_eq!(format!("{}", cmd), "REM key");
   /// ```
-  ///
-  /// [`RemCommand`]: crate::core::commands::RemCommand
   pub fn new(args: &[&str]) -> Result<RemCommand> {
     match args.len() {
       1 => {
@@ -53,9 +51,7 @@ impl fmt::Display for RemCommand {
 }
 
 impl Command for RemCommand {
-  /// Execute the `POP key` command on a given [`Nest`].
-  ///
-  /// [`Nest`]: crate::core::Nest
+  /// Execute the `POP key` command on a given [Nest].
   fn execute(&self, nest: &mut Nest) -> Data {
     nest.rem(&self.key);
     Data::SimpleString("OK".to_string())
@@ -112,7 +108,7 @@ mod tests {
     let data = command.execute(&mut nest);
     assert_eq!(data, Data::SimpleString("OK".to_string()));
 
-    nest.insert(Egg::new(TEST_KEY, TEST_VALUE));
+    nest.set(Egg::new(TEST_KEY, TEST_VALUE));
     let data = command.execute(&mut nest);
     assert_eq!(data, Data::SimpleString("OK".to_string()));
 

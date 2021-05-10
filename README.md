@@ -5,6 +5,10 @@
 
 Sparrow is a lightweight in-memory database built in Rust.
 
+This repository contains the following sources:
+- Sparrow core: In-memory database engine.
+- Sparrow cli: Command line interface to interact with a running instance of Sparrow.
+- Sparrow RESP: Sparrow implementation of the protocol RESP (REdis Serialization Protocol) that is used to interact with Sparrow.
 ## Motivation
 
 This is a long run personal project that I use to learn various aspects of Software Development:

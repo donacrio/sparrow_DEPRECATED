@@ -6,7 +6,7 @@
 //! For now Sparrow runs as the following:
 //! - The engine is ran in one thread and executes commands received
 //! through an input consumer and sends the output using a sender.
-//! - The TCP socket server is ran asynchronously using [async-std] in the main thread. It receives commands from socket connections
+//! - The TCP socket server is ran asynchronously using [async_std] in the main thread. It receives commands from socket connections
 //! and send them to the engine using an input producer. The outputs are retrieved using the engine output sender.
 //!
 //! # Examples
@@ -23,8 +23,6 @@
 //!
 //! t1.join().unwrap();
 //! ```
-//!
-//! [async-std]: async_std
 mod cli;
 mod core;
 mod errors;

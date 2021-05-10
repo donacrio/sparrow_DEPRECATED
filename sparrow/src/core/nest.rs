@@ -5,18 +5,13 @@ use std::collections::HashMap;
 
 /// Nest is the in-memory data storage of Sparrow.
 ///
-/// It contains an [`HashMap`] to store multiple [`Egg`] along with their key.
-///
-/// [`HashMap`]: https://doc.rust-lang.org/std/collections/struct.HashMap.html
-/// [`Egg`]: crate::core::Egg
+/// It contains an [HashMap] to store multiple [Egg] along with their key.
 pub struct Nest {
   map: HashMap<String, Egg>,
 }
 
 impl Nest {
-  /// Return a new [`Nest`].
-  ///
-  /// [`Nest`]: crate::core::Nest
+  /// Return a new [Nest].
   pub fn new() -> Nest {
     Nest {
       map: HashMap::new(),
@@ -31,30 +26,24 @@ impl Default for Nest {
 }
 
 impl Nest {
-  /// Insert an [`Egg`] into the `map` field
+  /// Set an [Egg] into the `map` field
   ///
   /// # Arguments
-  /// * `egg` - [`Egg`] to insert
-  ///
-  /// [`Egg`]: crate::core::Egg
-  pub fn insert(&mut self, egg: Egg) {
+  /// * `egg` - [Egg] to insert
+  pub fn set(&mut self, egg: Egg) {
     self.map.insert(egg.key().clone(), egg);
   }
-  /// Get an [`Egg`] from the `map` field
+  /// Get an [Egg] from the `map` field
   ///
   /// # Arguments
-  /// * `key` - Key value of the [`Egg`] to get
-  ///
-  /// [`Egg`]: crate::core::Egg
+  /// * `key` - Key value of the [Egg] to get
   pub fn get(&self, key: &str) -> Option<&Egg> {
     self.map.get(key)
   }
-  /// Pop an [`Egg`] from the `map` field
+  /// Remove an [Egg] from the `map` field
   ///
   /// # Arguments
-  /// * `key` - Key value of the [`Egg`] to pop
-  ///
-  /// [`Egg`]: crate::core::Egg
+  /// * `key` - Key value of the [Egg] to pop
   pub fn rem(&mut self, key: &str) {
     self.map.remove(key);
   }
@@ -91,7 +80,7 @@ mod tests {
   #[rstest]
   fn test_nest_insert(mut nest: Nest, egg: Egg) {
     // Egg is not in nest
-    nest.insert(egg.clone());
+    nest.set(egg.clone());
     // Egg is inserted into the nest and the egg previously associated to its key is returned
     assert_eq!(nest.get(egg.key()), Some(&egg));
   }
@@ -101,7 +90,7 @@ mod tests {
     // Egg is not in the nest
     assert_eq!(nest.get(egg.key()), None);
     // Egg is inserted into the nest and its key wasn't found
-    nest.insert(egg.clone());
+    nest.set(egg.clone());
     // Egg is in the nest and its value is returned
     assert_eq!(nest.get(egg.key()), Some(&egg))
   }
@@ -109,7 +98,7 @@ mod tests {
   #[rstest]
   fn test_nest_rem(mut nest: Nest, egg: Egg) {
     // Egg is inserted into the nest and its key wasn't found
-    nest.insert(egg.clone());
+    nest.set(egg.clone());
     // Egg is in the nest and its value is returned
     assert_eq!(nest.get(egg.key()), Some(&egg));
     // Egg is removed from the nest

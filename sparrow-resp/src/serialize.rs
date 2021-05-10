@@ -72,7 +72,7 @@ where
 
 /// Encode a given [Data] enum member by writing it to a [BufWriter].
 ///
-/// This function is similar to [decode] and is used to encode the given [Data] recursively.
+/// This function is similar to [encode] and is used to encode the given [Data] recursively.
 ///
 /// [Data]: crate::Data
 /// [encode]: crate::serialize::encode

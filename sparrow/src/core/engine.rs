@@ -53,20 +53,14 @@ impl EngineInput {
 /// t1.join().unwrap();
 /// ```
 pub struct Engine {
-  /// [`Nest`] used for in-memory data storage.
-  ///
-  /// [`Nest`]: crate::core::Nest
+  /// [Nest] used for in-memory data storage.
   nest: Nest,
-  /// [`mpsc`] consumer queue used to retrieve inputs for the engine.
-  ///
-  /// [`mpsc`]: https://doc.rust-lang.org/std/sync/mpsc/
+  /// [async_std] consumer channel used to retrieve inputs for the engine.
   inputs: Option<Receiver<EngineInput>>,
 }
 
 impl Engine {
-  /// Return a new [`Engine`].
-  ///
-  /// [`Engine`]: crate::core::Engine
+  /// Return a new [Engine].
   pub fn new() -> Engine {
     Engine {
       nest: Nest::new(),
@@ -99,14 +93,9 @@ impl Engine {
   ///
   /// Loop infinitely to:
   /// - Get the next [EngineInput] from the input consumer
-  /// - Parse the [Data] it contains into an [Command].
-  /// - Process this command (i.e. execute the [Command] contained in the input)
+  /// - Parse the [Data] it contains into a command.
+  /// - Process this command (i.e. execute the command contained in the input)
   /// - Send the output [Data] through the [Sender] contained in the [EngineInput]
-  ///
-  /// [EngineInput]: crate::core::EngineInput
-  /// [Data]: sparrow_resp::Data
-  /// [Command]: crate::core::commands::Command
-  /// [Sender]: async_std::channel::Sender
   pub fn run(&mut self) -> Result<()> {
     loop {
       let inputs = self

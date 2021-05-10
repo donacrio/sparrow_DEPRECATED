@@ -12,8 +12,8 @@ use std::env;
 
 /// Run the Command Line Interface.
 ///
-/// Return an [`Option`] that is [`None`] if the `help` flag is present
-/// in the CLI parameters. Otherwise a [`Some`] containing the [`Config`] object is returned.
+/// Return an [Option] that is [None] if the `help` flag is present
+/// in the CLI parameters. Otherwise a [Some] containing the [Config] object is returned.
 ///
 /// # Usage
 /// ```rust
@@ -35,8 +35,6 @@ use std::env;
 ///   };
 /// };
 ///```
-///
-/// [`Config`]: crate::cli::Config
 pub fn run_cli() -> Result<Option<Config>, Box<dyn std::error::Error>> {
   // Collect cli parameters
   let args: Vec<String> = env::args().collect();
@@ -61,9 +59,9 @@ pub fn run_cli() -> Result<Option<Config>, Box<dyn std::error::Error>> {
   Ok(Some(config))
 }
 
-/// Return [`Options`] used to parse CLI parameters.cli
+/// Return [Options] used to parse CLI parameters.cli
 ///
-/// [`Options`]: getopts::Options
+/// [Options]: getopts::Options
 fn get_opts() -> Options {
   let mut opts = Options::new();
   // Add options to parse here
