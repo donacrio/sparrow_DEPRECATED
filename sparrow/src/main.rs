@@ -16,7 +16,7 @@
 //! use crate::core::Engine;
 //!
 //! let mut engine = Engine::new();
-//! let (sender, bus) = engine.init(256);
+//! let sender = engine.init();
 //!
 //! let t1 = std::thread::spawn(move || engine.run().unwrap());
 //! run_tcp_server(3000,sender).await.unwrap();
