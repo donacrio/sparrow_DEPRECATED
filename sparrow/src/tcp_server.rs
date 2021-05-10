@@ -1,3 +1,4 @@
+//! TCP socket server.
 use crate::core::EngineInput;
 use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
@@ -7,20 +8,32 @@ use async_std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use async_std::prelude::*;
 use async_std::task;
 use sparrow_resp::{decode, encode, Data};
-
 use std::sync::Arc;
 
+/// Run Sparrow TCP socket server.
+///
+/// This function is blocking and runs [accept_loop] and [connection_loop] with [async_std]
+/// asynchronous backend.Result
+///
+/// [accept_loop]: crate:tcp_server::accept_loop
+/// [connection_loop]: crate:tcp_server::connection_loop
+/// [async_std]: async_std
 pub fn run_tcp_server(port: u16, engine_sender: Sender<EngineInput>) -> Result<()> {
   task::block_on(accept_loop(format!("127.0.0.1:{}", port), engine_sender))
 }
 
+/// Run tcp socket accept loop.
+///
+/// An [async-std] async task is spawned for every new connection.
+///
+/// [async-std]: async_std
 async fn accept_loop(addr: impl ToSocketAddrs, engine_sender: Sender<EngineInput>) -> Result<()> {
   let listener = TcpListener::bind(addr).await?;
 
   let mut incoming = listener.incoming();
   while let Some(stream) = incoming.next().await {
     let stream = stream?;
-    log::info!("Accepting from: {}", stream.peer_addr()?);
+    log::info!("Accepting connection from: {}", stream.peer_addr()?);
     let engine_sender = engine_sender.clone();
     task::spawn(async move {
       if let Err(err) = connection_loop(stream, engine_sender).await {
@@ -31,6 +44,14 @@ async fn accept_loop(addr: impl ToSocketAddrs, engine_sender: Sender<EngineInput
   Ok(())
 }
 
+/// Handle a [TcpStream] connection.
+///
+/// The stream is wrapped into a [BufReader] that is decoded into a [Data] using Sparrow-RESP [decode] function.
+///
+/// [TcpStream]: async_std::net::TcpStream
+/// [BufReader]: async_std::io::BufReader
+/// [decode]: sparrow_resp::decode
+/// [Data]: sparrow_resp::Data
 async fn connection_loop(stream: TcpStream, engine_sender: Sender<EngineInput>) -> Result<()> {
   let id = stream.peer_addr()?.to_string();
   let (sender, receiver) = unbounded();
@@ -39,6 +60,7 @@ async fn connection_loop(stream: TcpStream, engine_sender: Sender<EngineInput>) 
   let mut reader = BufReader::new(&*stream);
   let mut writer = BufWriter::new(&*stream);
   loop {
+    // Output will be sent through the writer
     let output = match decode(&mut reader).await {
       Ok(input) => {
         let id = id.clone();

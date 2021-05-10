@@ -10,8 +10,11 @@ use sparrow_resp::Data;
 
 /// Input send to the engine through an input sender.
 pub struct EngineInput {
+  /// Requester client's id.
   id: String,
+  /// Data encoding the input command for the engine
   data: Data,
+  /// Output sender used by the Engine to send output to the client.
   sender: Sender<Data>,
 }
 
@@ -36,17 +39,18 @@ impl EngineInput {
 /// Engine that manages the in-memory state and database operations.
 ///
 /// # Examples
+///
 /// ```rust
-/// async {
-///   use crate::net::run_tcp_server;
-///   use crate::core::Engine;
+/// use crate::net::run_tcp_server;
+/// use crate::core::Engine;
 ///
-///   let mut engine = Engine::new();
-///   let (sender, bus) = engine.init(256);
+/// let mut engine = Engine::new();
+/// let (sender, bus) = engine.init(256);
 ///
-///   std::thread::spawn(move || engine.run().unwrap());
-///   run_tcp_server("127.0.0.1:8080".parse().unwrap(), 256, sender, &bus).await.unwrap();
-/// };
+/// let t1 = std::thread::spawn(move || engine.run().unwrap());
+/// run_tcp_server(3000,sender).await.unwrap();
+///
+/// t1.join().unwrap();
 /// ```
 pub struct Engine {
   /// [`Nest`] used for in-memory data storage.
@@ -80,8 +84,9 @@ impl Default for Engine {
 impl Engine {
   /// Initialize the engine
   ///
-  /// Instantiate an return the input and output producers and consumers
-  /// use to communicate with the engine through threads.
+  /// Instantiate an input producer and an input consumer used to retrieve Engine inputs.
+  /// The sender is returned so that it can be used by other threads.
+  /// The consumer is set in the struct so it can be listened.
   pub fn init(&mut self) -> Sender<EngineInput> {
     log::trace!("Initializing engine");
     let (input_sender, input_receiver) = unbounded();
@@ -93,13 +98,15 @@ impl Engine {
   /// Run the engine.
   ///
   /// Loop infinitely to:
-  /// - Get the next [`EngineInput`] from the input consumer
-  /// - Process this input (i.e. execute the [`Command`] contained in the input)
-  /// - Send the [`EngineOutput`] through the output producer
+  /// - Get the next [EngineInput] from the input consumer
+  /// - Parse the [Data] it contains into an [Command].
+  /// - Process this command (i.e. execute the [Command] contained in the input)
+  /// - Send the output [Data] through the [Sender] contained in the [EngineInput]
   ///
-  /// [`EngineInput`]: crate::core::EngineInput
-  /// [`Command`]: crate::core::commands::Command
-  /// [`EngineOutput`]: crate::core::EngineOutput
+  /// [EngineInput]: crate::core::EngineInput
+  /// [Data]: sparrow_resp::Data
+  /// [Command]: crate::core::commands::Command
+  /// [Sender]: async_std::channel::Sender
   pub fn run(&mut self) -> Result<()> {
     loop {
       let inputs = self
