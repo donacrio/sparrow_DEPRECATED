@@ -15,8 +15,8 @@ use std::sync::Arc;
 ///
 /// This function is blocking and runs [accept_loop] and [connection_loop] with [async_std]
 /// asynchronous backend.Result
-pub fn run_tcp_server(port: u16, engine_sender: Sender<EngineInput>) -> Result<()> {
-  task::block_on(accept_loop(format!("127.0.0.1:{}", port), engine_sender))
+pub async fn run_tcp_server(port: u16, engine_sender: Sender<EngineInput>) -> Result<()> {
+  accept_loop(format!("127.0.0.1:{}", port), engine_sender).await
 }
 
 /// Run tcp socket accept loop.
@@ -24,6 +24,10 @@ pub fn run_tcp_server(port: u16, engine_sender: Sender<EngineInput>) -> Result<(
 /// An [async-std] async task is spawned for every new connection.
 async fn accept_loop(addr: impl ToSocketAddrs, engine_sender: Sender<EngineInput>) -> Result<()> {
   let listener = TcpListener::bind(addr).await?;
+  log::info!(
+    "TCP server is ready to accept connections at {}",
+    listener.local_addr()?
+  );
 
   let mut incoming = listener.incoming();
   while let Some(stream) = incoming.next().await {
