@@ -69,6 +69,10 @@ fn decode_inner<R: Read + Unpin + Send>(
     let mut buff = Vec::<u8>::new();
     reader.read_until(LF_BYTE, &mut buff).await?;
 
+    if buff.is_empty() {
+      return Err(Error::new(ErrorKind::BrokenPipe, "Broken pipe"));
+    }
+
     if buff.len() < 3 {
       return Err(Error::new(
         ErrorKind::InvalidInput,

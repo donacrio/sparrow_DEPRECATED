@@ -16,12 +16,13 @@
 //! use crate::core::Engine;
 //!
 //! let mut engine = Engine::new();
-//! let sender = engine.init();
+//! let engine_sender = engine.init();
+//! let engine_task = task::spawn(async move { engine.run().await });
 //!
-//! let t1 = std::thread::spawn(move || engine.run().unwrap());
-//! run_tcp_server(3000,sender).await.unwrap();
-//!
-//! t1.join().unwrap();
+//! let tcp_task =
+// task::spawn(async move { run_tcp_server(config.tcp_server_port, engine_sender).await });
+
+//! try_join!(engine_task, tcp_task).map(|_| ())
 //! ```
 mod cli;
 mod core;
@@ -33,6 +34,8 @@ use crate::cli::{run_cli, Config};
 use crate::core::Engine;
 use crate::errors::Result;
 use crate::tcp_server::run_tcp_server;
+use async_std::task;
+use futures::try_join;
 
 /// Sparrow core entrypoint.
 ///
@@ -43,7 +46,7 @@ fn main() {
   match run_cli() {
     Ok(config) => match config {
       Some(config) => {
-        match run(config) {
+        match task::block_on(async move { run(config).await }) {
           Ok(_) => {
             log::info!("Sparrow exited successfully!");
             std::process::exit(0);
@@ -64,34 +67,22 @@ fn main() {
 }
 
 /// Run Sparrow engine and TCP socket server.
-fn run(config: Config) -> Result<()> {
-  log::info!("Running Sparrow with config config: {:?}", config);
-
-  // take_hook() returns the default hook in case when a custom one is not set
-  let orig_hook = std::panic::take_hook();
-  std::panic::set_hook(Box::new(move |panic_info| {
-    // invoke the default handler and exit the process
-    orig_hook(panic_info);
-    std::process::exit(1);
-  }));
+async fn run(config: Config) -> Result<()> {
+  log::info!("Running Sparrow with config object: {:?}", config);
 
   // Create a new engine
-  log::info!("Setting up engine");
+  log::debug!("Setting up engine");
   let mut engine = Engine::new();
   let engine_sender = engine.init();
-  log::debug!("Engine set up");
 
   // Run the engine
-  log::info!("Starting engine thread");
-  let t1 = std::thread::spawn(move || engine.run().unwrap());
+  log::debug!("Spawning engine task");
+  let engine_task = task::spawn(async move { engine.run().await });
 
   // Run the TCP server
-  log::info!("Starting TCP server");
-  run_tcp_server(config.tcp_server_port, engine_sender)?;
+  log::debug!("Spawning TCP server task");
+  let tcp_task =
+    task::spawn(async move { run_tcp_server(config.tcp_server_port, engine_sender).await });
 
-  log::info!("Shutting down Sparrow engine");
-  t1.join().unwrap();
-  log::info!("Sparrow engine successfully shut down");
-
-  Ok(())
+  try_join!(engine_task, tcp_task).map(|_| ())
 }

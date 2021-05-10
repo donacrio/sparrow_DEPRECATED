@@ -5,7 +5,6 @@ use crate::core::nest::Nest;
 use crate::errors::Result;
 use crate::logger::BACKSPACE_CHARACTER;
 use async_std::channel::{unbounded, Receiver, Sender};
-use async_std::task;
 use sparrow_resp::Data;
 
 /// Input send to the engine through an input sender.
@@ -45,12 +44,13 @@ impl EngineInput {
 /// use crate::core::Engine;
 ///
 /// let mut engine = Engine::new();
-/// let sender = engine.init();
+/// let engine_sender = engine.init();
+/// let engine_task = task::spawn(async move { engine.run().await });
 ///
-/// let t1 = std::thread::spawn(move || engine.run().unwrap());
-/// run_tcp_server(3000,sender).await.unwrap();
-///
-/// t1.join().unwrap();
+/// let tcp_task =
+// task::spawn(async move { run_tcp_server(config.tcp_server_port, engine_sender).await });
+
+/// try_join!(engine_task, tcp_task).map(|_| ())
 /// ```
 pub struct Engine {
   /// [Nest] used for in-memory data storage.
@@ -96,16 +96,16 @@ impl Engine {
   /// - Parse the [Data] it contains into a command.
   /// - Process this command (i.e. execute the command contained in the input)
   /// - Send the output [Data] through the [Sender] contained in the [EngineInput]
-  pub fn run(&mut self) -> Result<()> {
+  pub async fn run(&mut self) -> Result<()> {
+    log::info!("Engine is ready to process commands");
     loop {
       let inputs = self
         .inputs
         .as_ref()
-        .ok_or("Sparrow engine is not initialized")?
-        .clone();
+        .ok_or("Sparrow engine is not initialized")?;
 
       log::trace!("Waiting for engine input");
-      let input = task::block_on(async move { inputs.recv().await })?;
+      let input = inputs.recv().await?;
       log::trace!("Received input");
 
       log::trace!("Processing input");
@@ -118,7 +118,7 @@ impl Engine {
       log::trace!("Input processed");
 
       log::trace!("Sending output");
-      task::block_on(async move { input.sender().send(output).await })?;
+      input.sender().send(output).await?;
       log::trace!("Output sent");
     }
   }
@@ -128,6 +128,7 @@ impl Engine {
 mod tests {
   use crate::core::{Engine, EngineInput};
   use async_std::channel::unbounded;
+  use async_std::task;
   use rstest::*;
   use sparrow_resp::Data;
 
@@ -153,8 +154,8 @@ mod tests {
   #[async_std::test]
   async fn test_run_engine(mut engine: Engine) {
     let engine_sender = engine.init();
-    std::thread::spawn(move || {
-      engine.run().unwrap();
+    task::spawn(async move {
+      engine.run().await.unwrap();
     });
 
     // Send input insert to engine

@@ -8,14 +8,15 @@ use async_std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use async_std::prelude::*;
 use async_std::task;
 use sparrow_resp::{decode, encode, Data};
+use std::io::ErrorKind;
 use std::sync::Arc;
 
 /// Run Sparrow TCP socket server.
 ///
 /// This function is blocking and runs [accept_loop] and [connection_loop] with [async_std]
 /// asynchronous backend.Result
-pub fn run_tcp_server(port: u16, engine_sender: Sender<EngineInput>) -> Result<()> {
-  task::block_on(accept_loop(format!("127.0.0.1:{}", port), engine_sender))
+pub async fn run_tcp_server(port: u16, engine_sender: Sender<EngineInput>) -> Result<()> {
+  accept_loop(format!("127.0.0.1:{}", port), engine_sender).await
 }
 
 /// Run tcp socket accept loop.
@@ -23,11 +24,19 @@ pub fn run_tcp_server(port: u16, engine_sender: Sender<EngineInput>) -> Result<(
 /// An [async-std] async task is spawned for every new connection.
 async fn accept_loop(addr: impl ToSocketAddrs, engine_sender: Sender<EngineInput>) -> Result<()> {
   let listener = TcpListener::bind(addr).await?;
+  log::info!(
+    "TCP server is ready to accept connections at {}",
+    listener.local_addr()?
+  );
 
   let mut incoming = listener.incoming();
   while let Some(stream) = incoming.next().await {
     let stream = stream?;
-    log::info!("Accepting connection from: {}", stream.peer_addr()?);
+    log::info!(
+      "{}[{}] Accepted connection",
+      BACKSPACE_CHARACTER,
+      stream.peer_addr()?
+    );
     let engine_sender = engine_sender.clone();
     task::spawn(async move {
       if let Err(err) = connection_loop(stream, engine_sender).await {
@@ -60,13 +69,20 @@ async fn connection_loop(stream: TcpStream, engine_sender: Sender<EngineInput>) 
         let output = receiver.recv().await?;
         output
       }
-      Err(err) => {
-        log::error!("{}[{}] {}", BACKSPACE_CHARACTER, id, err);
-        Data::Error(format!("{}", err))
-      }
+      Err(err) => match err.kind() {
+        ErrorKind::BrokenPipe => {
+          log::info!("{}[{}] Client disconnected", BACKSPACE_CHARACTER, id);
+          break;
+        }
+        _ => {
+          log::error!("{}[{}] {}", BACKSPACE_CHARACTER, id, err);
+          Data::Error(format!("{}", err))
+        }
+      },
     };
     log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, id, output);
     encode(&output, &mut writer).await?;
     writer.flush().await?;
   }
+  Ok(())
 }
