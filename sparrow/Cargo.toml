@@ -9,7 +9,6 @@ version = "0.1.0"
 
 [dependencies]
 async-std = "1.9"
-bus = "2.2"
 chrono = "0.4"
 dotenv = "0.15"
 env_logger = "0.8"
