@@ -8,6 +8,7 @@ use async_std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use async_std::prelude::*;
 use async_std::task;
 use sparrow_resp::{decode, encode, Data};
+use std::io::ErrorKind;
 use std::sync::Arc;
 
 /// Run Sparrow TCP socket server.
@@ -27,7 +28,11 @@ async fn accept_loop(addr: impl ToSocketAddrs, engine_sender: Sender<EngineInput
   let mut incoming = listener.incoming();
   while let Some(stream) = incoming.next().await {
     let stream = stream?;
-    log::info!("Accepting connection from: {}", stream.peer_addr()?);
+    log::info!(
+      "{}[{}] Accepted connection",
+      BACKSPACE_CHARACTER,
+      stream.peer_addr()?
+    );
     let engine_sender = engine_sender.clone();
     task::spawn(async move {
       if let Err(err) = connection_loop(stream, engine_sender).await {
@@ -60,13 +65,20 @@ async fn connection_loop(stream: TcpStream, engine_sender: Sender<EngineInput>) 
         let output = receiver.recv().await?;
         output
       }
-      Err(err) => {
-        log::error!("{}[{}] {}", BACKSPACE_CHARACTER, id, err);
-        Data::Error(format!("{}", err))
-      }
+      Err(err) => match err.kind() {
+        ErrorKind::BrokenPipe => {
+          log::info!("{}[{}] Client disconnected", BACKSPACE_CHARACTER, id);
+          break;
+        }
+        _ => {
+          log::error!("{}[{}] {}", BACKSPACE_CHARACTER, id, err);
+          Data::Error(format!("{}", err))
+        }
+      },
     };
     log::info!("{}[{}] {:?}", BACKSPACE_CHARACTER, id, output);
     encode(&output, &mut writer).await?;
     writer.flush().await?;
   }
+  Ok(())
 }
